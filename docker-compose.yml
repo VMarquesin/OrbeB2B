@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  postgres-orbeb2b:
+    image: postgres:16-alpine
+    container_name: orbeb2b_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin_password_123
+      POSTGRES_DB: orbeb2b_saas
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  pgdata:

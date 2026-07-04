@@ -1,0 +1,6 @@
+@OrbeB2B.Crm.API_HostAddress = http://localhost:5291
+
+GET {{OrbeB2B.Crm.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

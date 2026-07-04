@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/API/">
+    <Project Path="API/OrbeB2B.Crm.API.csproj" />
+  </Folder>
+  <Folder Name="/Application/">
+    <Project Path="Application/OrbeB2B.Crm.Application.csproj" />
+  </Folder>
+  <Folder Name="/Domain/">
+    <Project Path="Domain/OrbeB2B.Crm.Domain.csproj" />
+  </Folder>
+  <Folder Name="/Infrastructure/">
+    <Project Path="Infrastructure/OrbeB2B.Crm.Infrastructure.csproj" />
+  </Folder>
+</Solution>
