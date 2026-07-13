@@ -22,7 +22,9 @@ builder.Services.AddDbContext<CrmDbContext>(options =>
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IDbConnectionFactory, PgSqlConnectionFactory>();
+
 builder.Services.AddScoped<IUsuarioReadRepository, UsuarioReadRepository>();
+builder.Services.AddScoped<IUsuarioWriteRepository, UsuarioWriteRepository>();
 
 // Configuração do JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"];

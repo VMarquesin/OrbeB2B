@@ -31,6 +31,7 @@ public class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.HasOne<Cliente>()
                .WithMany()
                .HasForeignKey(e => e.ClienteId)
+               .IsRequired(false)
                .OnDelete(DeleteBehavior.Cascade);
     }
 }
