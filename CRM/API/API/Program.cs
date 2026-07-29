@@ -10,6 +10,7 @@ using OrbeB2B.Crm.Application.Repositories;
 using OrbeB2B.Crm.Infrastructure.Data.Repositories;
 using System.Text;
 
+Dapper.DefaultTypeMap.MatchNamesWithUnderscores = true;
 var builder = WebApplication.CreateBuilder(args);
 
 // Configuração do Banco de Dados
@@ -25,6 +26,26 @@ builder.Services.AddScoped<IDbConnectionFactory, PgSqlConnectionFactory>();
 
 builder.Services.AddScoped<IUsuarioReadRepository, UsuarioReadRepository>();
 builder.Services.AddScoped<IUsuarioWriteRepository, UsuarioWriteRepository>();
+
+builder.Services.AddScoped<IEmpresaReadRepository, EmpresaReadRepository>();
+builder.Services.AddScoped<IEmpresaWriteRepository, EmpresaWriteRepository>();
+
+builder.Services.AddScoped<IEmpresaFuncionarioReadRepository, EmpresaFuncionarioReadRepository>();
+
+builder.Services.AddScoped<IClienteReadRepository, ClienteReadRepository>();
+builder.Services.AddScoped<IClienteWriteRepository, ClienteWriteRepository>();
+
+builder.Services.AddScoped<ICategoriaReadRepository, CategoriaReadRepository>();
+builder.Services.AddScoped<ICategoriaWriteRepository, CategoriaWriteRepository>();
+
+builder.Services.AddScoped<IFornecedorReadRepository, FornecedorReadRepository>();
+builder.Services.AddScoped<IFornecedorWriteRepository, FornecedorWriteRepository>();
+
+builder.Services.AddScoped<IProdutoReadRepository, ProdutoReadRepository>();
+builder.Services.AddScoped<IProdutoWriteRepository, ProdutoWriteRepository>();
+
+builder.Services.AddScoped<IPedidoReadRepository, PedidoReadRepository>();
+builder.Services.AddScoped<IPedidoWriteRepository, PedidoWriteRepository>();
 
 // Configuração do JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"];

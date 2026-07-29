@@ -32,7 +32,7 @@ public class Produto
         PrecoAtacado = precoAtacado;
         PrecoLojista = precoLojista;
         PrecoVarejo = precoVarejo;
-        
+
         EstaAtivo = true;
     }
 

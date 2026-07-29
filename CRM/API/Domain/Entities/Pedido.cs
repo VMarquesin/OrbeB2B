@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using OrbeB2B.Crm.Domain.Enums;
 
 namespace OrbeB2B.Crm.Domain.Entities;
@@ -16,20 +17,40 @@ public class Pedido
     public string ObservacaoNegociacao { get; private set; }
     public DateTime DataCriacao { get; private set; }
 
+    private readonly List<PedidoItem> _itens = new();
+    public IReadOnlyCollection<PedidoItem> Itens => _itens.AsReadOnly();
+
     protected Pedido() { }
 
-    public Pedido(Guid empresaId, Guid clienteId, string codigoPedidoFormatado, OrigemPedido origem, decimal valorTotalPedido, string observacaoNegociacao)
+    public Pedido(Guid empresaId, Guid clienteId, string codigoPedidoFormatado, string observacaoNegociacao)
     {
         Id = Guid.NewGuid();
         EmpresaId = empresaId;
         ClienteId = clienteId;
         CodigoPedidoFormatado = codigoPedidoFormatado;
-        Origem = origem;
-        ValorTotalPedido = valorTotalPedido;
         ObservacaoNegociacao = observacaoNegociacao;
-        
+
+        Origem = OrigemPedido.APP;
         StatusLogistica = StatusFilaLogistica.AguardandoValidacao;
         StatusErp = StatusIntegracaoErp.Pendente;
+        ValorTotalPedido = 0;
         DataCriacao = DateTime.UtcNow;
+    }
+
+    public void AdicionarItem(Guid produtoId, int quantidadeSolicitada, decimal precoUnitarioAplicado, bool ehFabricacaoPropriaSnapshot)
+    {
+        var item = new PedidoItem(Id, produtoId, quantidadeSolicitada, precoUnitarioAplicado, ehFabricacaoPropriaSnapshot);
+        _itens.Add(item);
+
+        CalcularValorTotal();
+    }
+
+    public void CalcularValorTotal()
+    {
+        ValorTotalPedido = 0;
+        foreach (var item in _itens)
+        {
+            ValorTotalPedido += item.QuantidadeSolicitada * item.PrecoUnitarioAplicado;
+        }
     }
 }
