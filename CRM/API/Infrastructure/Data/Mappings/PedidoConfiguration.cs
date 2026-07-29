@@ -34,5 +34,13 @@ public class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
                .WithMany()
                .HasForeignKey(e => e.ClienteId)
                .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(e => e.Itens)
+               .WithOne()
+               .HasForeignKey(e => e.PedidoId)
+               .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Navigation(e => e.Itens)
+               .UsePropertyAccessMode(PropertyAccessMode.Field);
     }
 }
