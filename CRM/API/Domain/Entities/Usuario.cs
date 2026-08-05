@@ -32,4 +32,9 @@ public class Usuario
     {
         EstaAtivo = false;
     }
+
+    public void Ativar()
+    {
+        EstaAtivo = true;
+    }
 }

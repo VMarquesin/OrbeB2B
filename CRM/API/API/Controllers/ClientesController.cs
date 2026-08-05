@@ -62,4 +62,24 @@ public class ClientesController : ControllerBase
 
         return StatusCode(201, new { mensagem = "Cliente cadastrado com sucesso!", id = novoCliente.Id });
     }
+
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> AtualizarStatusCliente(Guid id, [FromBody] AtualizarStatusClienteRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid(); 
+
+        var cliente = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+
+        if (cliente is null)
+            return NotFound(new { mensagem = "Cliente não encontrado." });
+
+        cliente.AtualizarStatusCadastro(request.Status);
+
+        await _writeRepository.AtualizarAsync(cliente);
+
+        return Ok(new { mensagem = "Status do cliente atualizado com sucesso." });
+    }
 }

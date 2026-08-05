@@ -74,4 +74,44 @@ public class PedidosController : ControllerBase
             valorTotal = novoPedido.ValorTotalPedido
         });
     }
+
+    [HttpPatch("{id:guid}/status-logistica")]
+    public async Task<IActionResult> AtualizarStatusLogistica(Guid id, [FromBody] AtualizarStatusLogisticaPedidoRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var pedido = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+
+        if (pedido is null)
+            return NotFound(new { mensagem = "Pedido não encontrado." });
+
+        pedido.AtualizarStatusLogistica(request.Status);
+
+        await _writeRepository.AtualizarAsync(pedido);
+
+        return Ok(new { mensagem = "Status logístico do pedido atualizado com sucesso." });
+    }
+
+    [HttpPatch("{id:guid}/status-erp")]
+    public async Task<IActionResult> AtualizarStatusErp(Guid id, [FromBody] AtualizarStatusErpPedidoRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var pedido = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+
+        if (pedido is null)
+            return NotFound(new { mensagem = "Pedido não encontrado." });
+
+        pedido.AtualizarStatusErp(request.Status);
+
+        await _writeRepository.AtualizarAsync(pedido);
+
+        return Ok(new { mensagem = "Status ERP do pedido atualizado com sucesso." });
+    }
 }

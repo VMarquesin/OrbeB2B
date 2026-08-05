@@ -1,69 +1,50 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+using OrbeB2B.Crm.Application.DTOs;
+using OrbeB2B.Crm.Application.Repositories;
 using OrbeB2B.Crm.Application.Services.Interfaces;
-using OrbeB2B.Crm.Infrastructure.Data;
 
 namespace OrbeB2B.Crm.API.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/auth")]
+[AllowAnonymous]
 public class AuthController : ControllerBase
 {
-    private readonly CrmDbContext _context;
-    private readonly IPasswordHasher _passwordHasher;
+    private readonly IAuthReadRepository _authReadRepository;
     private readonly ITokenService _tokenService;
 
-    // Injeção de dependências que configuramos no Program.cs
-    public AuthController(CrmDbContext context, IPasswordHasher passwordHasher, ITokenService tokenService)
+    public AuthController(IAuthReadRepository authReadRepository, ITokenService tokenService)
     {
-        _context = context;
-        _passwordHasher = passwordHasher;
+        _authReadRepository = authReadRepository;
         _tokenService = tokenService;
     }
 
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        // Busca o usuário pelo e-mail
-        var usuario = await _context.Usuarios
-            .FirstOrDefaultAsync(u => u.Email == request.Email);
+        var usuario = await _authReadRepository.ObterUsuarioParaLoginAsync(request.Email);
 
-        // Validações de segurança
-        if (usuario == null || !usuario.EstaAtivo)
+        if (usuario is null)
             return Unauthorized(new { mensagem = "E-mail ou senha inválidos." });
 
-        // Verifica se o Hash da senha bate com o que o usuário digitou
-        if (!_passwordHasher.Verify(request.Senha, usuario.SenhaHash))
+        if (!BCrypt.Net.BCrypt.Verify(request.Senha, usuario.SenhaHash))
             return Unauthorized(new { mensagem = "E-mail ou senha inválidos." });
 
-        // Busca os dados de relacionamento usando os IDs das nossas entidades enxutas
-        var perfil = await _context.PerfisUsuario.FindAsync(usuario.PerfilId);
-        
-        var funcionario = await _context.EmpresaFuncionarios
-            .FirstOrDefaultAsync(f => f.UsuarioId == usuario.Id);
-            
-        var empresa = await _context.Empresas.FindAsync(funcionario!.EmpresaId);
+        if (!usuario.EstaAtivo)
+            return StatusCode(403, new { mensagem = "Usuário inativo. Contate o administrador." });
 
-        if (empresa == null || !empresa.EstaAtiva)
-            return Unauthorized(new { mensagem = "Empresa inativa ou não encontrada." });
+        var token = _tokenService.GerarToken(usuario);
 
-        // O Segurança libera o crachá (Gera o JWT)
-        var token = _tokenService.GenerateToken(usuario, empresa, perfil!);
+        var response = new LoginResponse(
+            Token: token,
+            UsuarioId: usuario.Id,
+            Nome: usuario.Nome,
+            Email: usuario.Email,
+            EmpresaId: usuario.EmpresaId,
+            Perfil: usuario.NomePerfil
+        );
 
-        // Retorna o Token para o front-end salvar no LocalStorage
-        return Ok(new 
-        { 
-            token, 
-            usuario = new 
-            { 
-                id = usuario.Id, 
-                nome = usuario.Nome, 
-                perfil = perfil!.NomePerfil,
-                empresa = empresa.NomeFantasia
-            } 
-        });
+        return Ok(response);
     }
 }
-
-// DTO (Data Transfer Object) simples para mapear o JSON de entrada do React
-public record LoginRequest(string Email, string Senha);

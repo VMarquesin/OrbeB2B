@@ -38,4 +38,9 @@ public class Cliente
         StatusCadastro = StatusCadastroCliente.Pendente;
         DataCadastro = DateTime.UtcNow;
     }
+
+    public void AtualizarStatusCadastro(StatusCadastroCliente novoStatus)
+    {
+        StatusCadastro = novoStatus;
+    }
 }

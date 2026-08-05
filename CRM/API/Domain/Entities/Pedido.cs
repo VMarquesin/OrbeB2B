@@ -53,4 +53,14 @@ public class Pedido
             ValorTotalPedido += item.QuantidadeSolicitada * item.PrecoUnitarioAplicado;
         }
     }
+
+    public void AtualizarStatusLogistica(StatusFilaLogistica novoStatus)
+    {
+        StatusLogistica = novoStatus;
+    }
+
+    public void AtualizarStatusErp(StatusIntegracaoErp novoStatus)
+    {
+        StatusErp = novoStatus;
+    }
 }
