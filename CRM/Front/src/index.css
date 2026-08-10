@@ -1,0 +1,27 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ========================================== */
+/* MODO DE IMPRESSÃO - ORDEM DE PRODUÇÃO      */
+/* ========================================== */
+@media print {
+  /* Oculta tudo que for preço ou financeiro na impressão */
+  .ocultar-na-producao,
+  .coluna-preco,
+  .coluna-subtotal,
+  .resumo-financeiro {
+    display: none !important;
+  }
+
+  /* Aumenta a fonte para facilitar a leitura no chão de fábrica */
+  body {
+    font-size: 14pt;
+    color: #000;
+  }
+
+  /* Remove sombras e bordas coloridas para economizar tinta */
+  * {
+    box-shadow: none !important;
+    border-color: #ccc !important;
+  }
+}
