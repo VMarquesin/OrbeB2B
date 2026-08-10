@@ -1,0 +1,123 @@
+========================================================================
+🚀 GUIA DE INTEGRAÇÃO FRONT-END <-> BACK-END (ORBE B2B - A CASEIRA)
+========================================================================
+
+Back-end!
+O Front-end em React já está 100% estruturado, componentizado e blindado. 
+Atualmente, as telas consomem dados simulados do arquivo `src/services/mockData.js`. 
+As chaves dos objetos nesse Mock foram desenhadas para espelhar EXATAMENTE as colunas do banco de dados SQL 
+(snake_case e camelCase específicos da regra de negócio).
+
+Sua missão é fazer o "desmame" do mockData e plugar a API real. Siga as instruções abaixo:
+
+------------------------------------------------------------------------
+1. CONFIGURAÇÃO BASE (JÁ IMPLEMENTADA NO FRONT)
+------------------------------------------------------------------------
+O projeto utiliza o Axios para requisições. 
+- O arquivo `src/services/api.js` já está configurado.
+- Ele busca a URL da API na variável `VITE_API_URL` (dentro do arquivo `.env`).
+- Ele possui um Interceptor que injeta automaticamente o token JWT (`localStorage.getItem('caseira_token')`) 
+no Header Authorization (Bearer) de todas as requisições.
+- Se a API retornar erro 401 (Não Autorizado), o interceptor desloga o usuário e o manda para a tela de Login.
+
+------------------------------------------------------------------------
+2. INTEGRAÇÃO DO LOGIN (AuthContext.jsx)
+------------------------------------------------------------------------
+Onde mexer: `src/context/AuthContext.jsx`
+O que fazer: Trocar a validação estática pelo endpoint de autenticação.
+
+Como deve ficar:
+import api from '../services/api';
+
+const login = async (email, password) => {
+  try {
+    const response = await api.post('/auth/login', { email, password });
+    const { token, usuario } = response.data; // A API deve retornar o JWT e os dados do usuário (nome, role, etc)
+    
+    localStorage.setItem('caseira_token', token);
+    setUser(usuario);
+    return true;
+  } catch (error) {
+    console.error("Erro no login", error);
+    return false;
+  }
+};
+
+------------------------------------------------------------------------
+3. INTEGRAÇÃO DAS TELAS INTERNAS (Padrão de Substituição)
+------------------------------------------------------------------------
+Em todas as telas abaixo, o processo de substituição é idêntico:
+1. Apague a importação: `import { mock... } from '../../services/mockData'`
+2. Troque o estado inicial: `const [dados, setDados] = useState(mock...)` para `useState([])`
+3. Crie um `useEffect` para carregar os dados na montagem do componente.
+
+EXEMPLO DE TEMPLATE (Para usar em todas as telas):
+import api from '../../services/api';
+
+useEffect(() => {
+  async function carregarDados() {
+    try {
+      const response = await api.get('/seu_endpoint_aqui');
+      setDados(response.data);
+    } catch (error) {
+      console.error("Erro ao carregar dados", error);
+    }
+  }
+  carregarDados();
+}, []);
+
+------------------------------------------------------------------------
+4. MAPEAMENTO DE ENDPOINTS ESPERADOS PELO FRONT-END
+------------------------------------------------------------------------
+Para que os Dashboards, Cálculos de BI (Curva ABC e LTV) e Filtros funcionem sem quebrar a tela, 
+a API deve retornar as propriedades com os MESMOS nomes que estão hoje no `mockData.js`.
+
+Telas e Endpoints sugeridos:
+
+A) TELA DE CLIENTES (/clientes)
+- Endpoint Sugerido: GET `/clientes`
+- Campos obrigatórios no retorno: id, documento, nome_ou_razao_social, nome_fantasia, tipo_segmento, 
+status_cadastro, ultima_compra.
+
+B) TELA DE PRODUTOS (/produtos)
+- Endpoint Sugerido: GET `/produtos`
+- Campos obrigatórios no retorno: id, codigo_comercial, descricao, embalagem, eh_fabricacao_propria 
+(boolean), preco_atacado, preco_lojista, preco_varejo, esta_ativo (boolean).
+
+C) TELA DE GESTÃO ORÇAMENTÁRIA (/pedidos)
+- Endpoint Sugerido: GET `/pedidos`
+- Campos obrigatórios no retorno: id, codigo_pedido_formatado, origem, data_criacao, clienteNome, 
+resumo, status, valor_total_pedido, itemsDetalhados (array de objetos com: nome, quantidade, precoUnitario, eh_fabricacao_propria).
+* Obs: As telas de Financeiro e Relatórios (BI) consumirão esse MESMO endpoint ou criarão views 
+específicas que retornem essa mesma estrutura.
+
+D) TELA DE CADASTRO DE EMPRESA (/cadastro)
+- Endpoint Sugerido: POST `/empresas/registrar`
+- Payload enviado pelo front: cnpj, razao_social, nome_fantasia, cep, logradouro, numero, bairro, 
+cidade_nome, estado_sigla, nome_admin, email_admin, senha_hash.
+
+E) TELA DE DASHBOARD (Home)
+- A Home consolida dados. A sugestão é criar um endpoint otimizado (Ex: GET `/dashboard/metricas`) 
+que devolva os cálculos prontos, ou o front continuará lendo dos endpoints de /pedidos e /produtos 
+para fazer os cálculos matemáticos localmente (como faz hoje).
+
+------------------------------------------------------------------------
+5. AVISO IMPORTANTE PARA A EQUIPE .NET (CORS)
+------------------------------------------------------------------------
+Como o Front-end em React rodará em uma porta diferente da API durante o desenvolvimento,
+certifiquem-se de configurar o CORS (app.UseCors) no arquivo `Program.cs` ou `Startup.cs` do .NET.
+
+Exemplo em .NET:
+builder.Services.AddCors(options => {
+    options.AddPolicy("AllowReactApp", policy => {
+        policy.WithOrigins("http://localhost:5173") // URL do Vite/React
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
+
+E nos middlewares: app.UseCors("AllowReactApp");
+
+========================================================================
+FIM DO GUIA
+========================================================================
