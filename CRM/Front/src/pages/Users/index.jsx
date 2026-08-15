@@ -2,33 +2,11 @@ import { useState, useMemo } from 'react';
 import { 
   Shield, Users, Plus, Edit3, Trash2, CheckCircle2, X, ShieldAlert, Calendar
 } from 'lucide-react';
+import api from '../../services/api';
 
 export default function GestaoUsuarios() {
-  // Mock inicial alinhado ao Schema empresa_funcionarios
-  const [funcionarios, setFuncionario] = useState([
-    {
-      id: "f1a2b3c4-e5f6-7890-abcd-ef1234567890",
-      empresa_id: "emp-01",
-      usuario_id: "usr-01",
-      nome: "Jaqueline Silva",
-      email: "jaqueline@acaseira.com.br",
-      cargo: "Operadora de PCP & Vendas",
-      departamento: "Comercial / Produção",
-      data_admissao: "2024-02-10T08:00:00Z",
-      acessos: ["orcamentos", "clientes", "produtos"]
-    },
-    {
-      id: "f2b3c4d5-f6a1-8901-bcde-f12345678901",
-      empresa_id: "emp-01",
-      usuario_id: "usr-02",
-      nome: "Marcio Admin",
-      email: "admin@acaseira.com.br",
-      cargo: "Diretor Executivo",
-      departamento: "Administração",
-      data_admissao: "2023-01-15T08:00:00Z",
-      acessos: ["ALL"]
-    }
-  ]);
+  // 2. GAVETA VAZIA
+  const [funcionarios, setFuncionario] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -51,6 +29,20 @@ export default function GestaoUsuarios() {
     { id: 'produtos', label: 'Cadastro de Produtos' },
     { id: 'usuarios', label: 'Controle de Acesso (Admin)' }
   ];
+
+  // 3. GATILHO DE BUSCA NO BACKEND
+  useEffect(() => {
+    async function carregarUsuarios() {
+      try {
+        const resposta = await api.get('/api/usuarios');
+        setFuncionario(resposta.data);
+      } catch (erro) {
+        console.error("Erro ao carregar colaboradores:", erro);
+      }
+    }
+
+    carregarUsuarios();
+  }, []);
 
   const funcionariosFiltrados = useMemo(() => {
     return funcionarios.filter(f => 
@@ -97,32 +89,56 @@ export default function GestaoUsuarios() {
     });
   };
 
-  const handleSalvarFuncionario = (e) => {
+  // 4. SALVAMENTO ASSÍNCRONO CONECTADO À API
+  const handleSalvarFuncionario = async (e) => {
     e.preventDefault();
     if (!formData.nome || !formData.cargo) {
       alert("Nome e Cargo são obrigatórios.");
       return;
     }
 
-    if (funcionarioEmEdicao) {
-      setFuncionario(prev => prev.map(f => f.id === funcionarioEmEdicao.id ? { ...f, ...formData } : f));
-    } else {
-      const novoFunc = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-        empresa_id: "emp-01",
-        usuario_id: "usr-" + Math.floor(Math.random() * 1000),
-        ...formData,
-        data_admissao: new Date(formData.data_admissao).toISOString()
-      };
-      setFuncionario(prev => [novoFunc, ...prev]);
-    }
+    const payload = {
+      empresa_id: "emp-01",
+      ...formData,
+      data_admissao: new Date(formData.data_admissao).toISOString()
+    };
 
-    setIsModalOpen(false);
+    try {
+      if (funcionarioEmEdicao) {
+        // Descomente quando a rota PUT estiver pronta no C#
+        await api.put(`/api/usuarios/${funcionarioEmEdicao.id}`, payload);
+        
+        setFuncionario(prev => prev.map(f => f.id === funcionarioEmEdicao.id ? { ...f, ...payload } : f));
+      } else {
+        // Descomente quando a rota POST estiver pronta no C#
+        await api.post('/api/usuarios', payload);
+        
+        const novoFunc = {
+          id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+          usuario_id: "usr-" + Math.floor(Math.random() * 1000),
+          ...payload
+        };
+        setFuncionario(prev => [novoFunc, ...prev]);
+      }
+      setIsModalOpen(false);
+    } catch (erro) {
+      console.error("Erro ao salvar colaborador:", erro);
+      alert("Ocorreu um erro ao comunicar com o servidor.");
+    }
   };
 
-  const handleRemoverFuncionario = (id) => {
+  // 5. REMOÇÃO ASSÍNCRONA CONECTADA À API
+  const handleRemoverFuncionario = async (id) => {
     if (window.confirm("Deseja remover este colaborador da empresa?")) {
-      setFuncionario(prev => prev.filter(f => f.id !== id));
+      try {
+        // Descomente quando a rota DELETE estiver pronta no C#
+        await api.delete(`/api/usuarios/${id}`);
+        
+        setFuncionario(prev => prev.filter(f => f.id !== id));
+      } catch (erro) {
+        console.error("Erro ao remover colaborador:", erro);
+        alert("Falha ao tentar remover o colaborador do banco de dados.");
+      }
     }
   };
 

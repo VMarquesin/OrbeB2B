@@ -4,6 +4,7 @@ import {
   Building2, MapPin, User, Mail, Lock, 
   ArrowRight, CheckCircle2, Factory 
 } from 'lucide-react';
+import api from '../../services/api';
 
 export default function CadastroEmpresa() {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ export default function CadastroEmpresa() {
     if (etapa > 1) setEtapa(etapa - 1);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     
     if (formData.senha_hash !== formData.confirmar_senha) {
@@ -53,12 +54,27 @@ export default function CadastroEmpresa() {
 
     setIsLoading(true);
 
-    // Simulação de chamada para a API (POST /api/empresas/registrar)
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Retiramos a 'confirmar_senha' pois o backend não precisa gravá-la
+      const { confirmar_senha, ...payload } = formData;
+
+      // Dispara o pacote de dados para o Controller de registro no C#
+      await api.post('/api/empresas/registrar', payload);
+
       alert("Empresa cadastrada com sucesso! Faça seu login.");
-      navigate('/'); // Redireciona para o Login
-    }, 1500);
+      navigate('/'); // Redireciona para a tela de Login
+    } catch (erro) {
+      console.error("Erro ao registrar empresa:", erro);
+      
+      // Validação de erro amigável caso o e-mail ou CNPJ já existam no banco
+      if (erro.response && erro.response.status === 400) {
+        alert(erro.response.data.message || "Erro de validação. Verifique os dados.");
+      } else {
+        alert("Ocorreu um erro no servidor ao tentar cadastrar a empresa. Tente novamente.");
+      }
+    } finally {
+      setIsLoading(false); // Libera o botão de loading independente de sucesso ou falha
+    }
   };
 
   return (

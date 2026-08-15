@@ -7,17 +7,25 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [erro, setErro] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   
   const { login } = useAuth();
 
-  const handleSubmeter = (e) => {
+  const handleSubmeter = async (e) => {
     e.preventDefault();
     setErro('');
+    setIsLoading(true); // Trava o botão
     
-    const sucesso = login(email, password);
-    
-    if (!sucesso) {
-      setErro('E-mail ou senha incorretos. Tente novamente.');
+    try {
+      const sucesso = await login(email, password);
+      
+      if (!sucesso) {
+        setErro('E-mail ou senha incorretos. Tente novamente.');
+      }
+    } catch (err) {
+      setErro('Falha na comunicação com o servidor.');
+    } finally {
+      setIsLoading(false); // Libera o botão
     }
   };
 

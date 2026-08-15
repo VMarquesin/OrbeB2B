@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Save, AlertTriangle, Settings2, Info, Factory, CheckCircle2, X } from 'lucide-react';
+import api from '../../services/api'; // 1. IMPORTAÇÃO DA API PRONTA
 
 export default function Configuracoes() {
   // Estados para os parâmetros de fábrica
@@ -10,16 +11,30 @@ export default function Configuracoes() {
   // Estados de controle da interface (Modais e Alertas)
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Carrega os dados salvos ao abrir a tela (simulando um GET no Banco de Dados)
+  // 2. GATILHO DE BUSCA (Híbrido)
   useEffect(() => {
-    const dadosSalvos = localStorage.getItem('caseira_pcp_settings');
-    if (dadosSalvos) {
-      const config = JSON.parse(dadosSalvos);
-      setMesas(config.mesas);
-      setBandejas(config.bandejas);
-      setDocesPorBandeja(config.docesPorBandeja);
+    async function carregarConfiguracoes() {
+      try {
+        // FUTURO: Descomente a linha abaixo quando a rota existir no C#
+        // const resposta = await api.get('/api/configuracoes/pcp');
+        // const config = resposta.data;
+
+        // ATUAL: Mantém a leitura local para não quebrar as outras telas
+        const dadosSalvos = localStorage.getItem('caseira_pcp_settings');
+        if (dadosSalvos) {
+          const config = JSON.parse(dadosSalvos);
+          setMesas(config.mesas);
+          setBandejas(config.bandejas);
+          setDocesPorBandeja(config.docesPorBandeja);
+        }
+      } catch (erro) {
+        console.error("Erro ao carregar configurações:", erro);
+      }
     }
+
+    carregarConfiguracoes();
   }, []);
 
   // Cálculo algébrico da capacidade em tempo real (C = B * D * M)
@@ -27,15 +42,27 @@ export default function Configuracoes() {
     return mesas * bandejas * docesPorBandeja;
   }, [mesas, bandejas, docesPorBandeja]);
 
-  // Função para salvar definitivamente os parâmetros
-  const salvarConfiguracoes = () => {
+  // 3. VIRADA DE CHAVE: Função assíncrona preparada para o Backend
+  const salvarConfiguracoes = async () => {
+    setIsLoading(true);
     const config = { mesas, bandejas, docesPorBandeja, capacidadeTotalTurno };
-    // Salva globalmente para o Termômetro ler depois (Simulando o POST)
-    localStorage.setItem('caseira_pcp_settings', JSON.stringify(config));
     
-    setIsModalOpen(false);
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000); // Oculta o aviso de sucesso após 3s
+    try {
+      // FUTURO: Descomente a linha abaixo quando a rota existir no C#
+      // await api.put('/api/configuracoes/pcp', config);
+
+      // ATUAL: Salva globalmente no navegador para o Dashboard e Orçamentos lerem
+      localStorage.setItem('caseira_pcp_settings', JSON.stringify(config));
+      
+      setIsModalOpen(false);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000); // Oculta o aviso após 3s
+    } catch (erro) {
+      console.error("Erro ao salvar configurações:", erro);
+      alert("Falha na comunicação com o servidor.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -122,7 +149,7 @@ export default function Configuracoes() {
           <div className="flex justify-end pt-4 border-t border-slate-100">
             <button 
               onClick={() => setIsModalOpen(true)}
-              className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm"
+              className="bg-slate-800 hover:bg-slate-900 text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm cursor-pointer"
             >
               <Save size={18} /> Salvar Parâmetros
             </button>
@@ -149,15 +176,17 @@ export default function Configuracoes() {
             <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-center gap-3">
               <button 
                 onClick={() => setIsModalOpen(false)} 
-                className="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl font-bold transition-colors w-full"
+                disabled={isLoading}
+                className="px-5 py-2.5 text-slate-600 hover:bg-slate-200 rounded-xl font-bold transition-colors w-full cursor-pointer disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button 
                 onClick={salvarConfiguracoes} 
-                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition-colors w-full shadow-sm"
+                disabled={isLoading}
+                className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl font-bold transition-colors w-full shadow-sm cursor-pointer flex justify-center items-center disabled:opacity-50"
               >
-                Sim, Alterar Valores
+                {isLoading ? "Salvando..." : "Sim, Alterar Valores"}
               </button>
             </div>
           </div>

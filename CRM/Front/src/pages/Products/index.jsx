@@ -3,10 +3,11 @@ import {
   Package, Search, Plus, Edit3, Archive, RotateCcw, 
   Factory, Store, X 
 } from 'lucide-react';
-import { mockProducts } from '../../services/mockData';
+import api from '../../services/api';
 
 export default function GestaoProdutos() {
-  const [produtos, setProdutos] = useState(mockProducts);
+  const [produtos, setProdutos] = useState([]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS'); // 'TODOS', 'PROPRIO', 'TERCEIRO'
   
@@ -24,6 +25,20 @@ export default function GestaoProdutos() {
     preco_varejo: '',
     estoque: ''
   });
+
+  // 3. Busca ao carregar a tela
+  useEffect(() => {
+    async function carregarProdutos() {
+      try {
+        const resposta = await api.get('/api/produtos');
+        setProdutos(resposta.data);
+      } catch (erro) {
+        console.error("Erro ao buscar catálogo de produtos:", erro);
+      }
+    }
+
+    carregarProdutos();
+  }, []);
 
   const formatCurrency = (val) => {
     return Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -86,7 +101,7 @@ export default function GestaoProdutos() {
     setIsModalOpen(true);
   };
 
-  const handleSalvarProduto = (e) => {
+  const handleSalvarProduto = async (e) => {
     e.preventDefault();
     if (!formData.descricao || !formData.codigo_comercial) {
       alert("Descrição e Código Comercial (SKU) são obrigatórios.");
@@ -101,24 +116,47 @@ export default function GestaoProdutos() {
       estoque: Number(formData.estoque || 0)
     };
 
-    if (produtoEmEdicao) {
-      setProdutos(prev => prev.map(p => p.id === produtoEmEdicao.id ? { ...p, ...produtoPayload } : p));
-    } else {
-      const novoProduto = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-        empresa_id: "emp-01",
-        categoria_id: "cat-doces-01",
-        ...produtoPayload,
-        esta_ativo: true
-      };
-      setProdutos(prev => [novoProduto, ...prev]);
+    try {
+      if (produtoEmEdicao) {
+        // Descomente quando a rota de edição estiver pronta no C#
+        // await api.put(`/api/produtos/${produtoEmEdicao.id}`, produtoPayload);
+        
+        setProdutos(prev => prev.map(p => p.id === produtoEmEdicao.id ? { ...p, ...produtoPayload } : p));
+      } else {
+        const novoProdutoPayload = {
+          empresa_id: "emp-01",
+          categoria_id: "cat-doces-01",
+          ...produtoPayload,
+          esta_ativo: true
+        };
+        
+        // Descomente quando a rota de criação estiver pronta no C#
+        // await api.post('/api/produtos', novoProdutoPayload);
+        
+        // Simulação local otimista
+        const novoProdutoLocal = {
+          id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
+          ...novoProdutoPayload
+        };
+        setProdutos(prev => [novoProdutoLocal, ...prev]);
+      }
+      setIsModalOpen(false);
+    } catch (erro) {
+      console.error("Erro ao salvar produto:", erro);
+      alert("Falha ao comunicar com o servidor para salvar o produto.");
     }
-
-    setIsModalOpen(false);
   };
 
-  const handleToggleStatus = (id) => {
-    setProdutos(prev => prev.map(p => p.id === id ? { ...p, esta_ativo: !p.esta_ativo } : p));
+  const handleToggleStatus = async (id) => {
+    try {
+      // Rota de inativação estiver pronta no C#
+      await api.put(`/api/produtos/${id}/toggle-status`);
+      
+      setProdutos(prev => prev.map(p => p.id === id ? { ...p, esta_ativo: !p.esta_ativo } : p));
+    } catch (erro) {
+      console.error("Erro ao alterar status do produto:", erro);
+      alert("Falha ao atualizar o status no banco de dados.");
+    }
   };
 
   return (

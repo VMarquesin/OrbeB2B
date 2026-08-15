@@ -3,14 +3,31 @@ import {
   Download, FileSpreadsheet, FileText, Filter, TrendingUp, 
   BarChart3, PieChart, Activity, Users, LayoutList, Briefcase, Store
 } from 'lucide-react';
-import { mockOrders } from '../../services/mockData';
+import api from '../../services/api';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 export default function Reports() {
+  // 2. A GAVETA VAZIA PARA OS DADOS DO BANCO
+  const [pedidos, setPedidos] = useState([]);
+  
   const [visaoAtiva, setVisaoAtiva] = useState('produtos'); 
   const [filtroMes, setFiltroMes] = useState('todos');
   const [filtroOrigem, setFiltroOrigem] = useState('todos');
   const [filtroSegmento, setFiltroSegmento] = useState('todos');
+
+  // 3. BUSCA NO BACKEND
+  useEffect(() => {
+    async function carregarDadosRelatorios() {
+      try {
+        const resposta = await api.get('/api/pedidos');
+        setPedidos(resposta.data);
+      } catch (erro) {
+        console.error("Erro ao carregar dados para os relatórios:", erro);
+      }
+    }
+
+    carregarDadosRelatorios();
+  }, []);
 
   // ==========================================
   // O MOTOR MATEMÁTICO DO BI (AGRUPAMENTO)
@@ -20,7 +37,7 @@ export default function Reports() {
     const rankingProdutos = {};
     const rankingClientes = {};
 
-    const pedidosFiltrados = mockOrders.filter(pedido => {
+    const pedidosFiltrados = pedidos.filter(pedido => {
       if (pedido.status === 'aguardando_validacao' || pedido.status === 'pendente') return false;
       
       const dataOrigem = pedido.data_criacao;
@@ -90,18 +107,19 @@ export default function Reports() {
       receitaTotal, curvaABC, clientesOrdenados,
       ticketMedio: pedidosFiltrados.length > 0 ? receitaTotal / pedidosFiltrados.length : 0
     };
-  }, [filtroMes, filtroOrigem, filtroSegmento]);
+  }, [pedidos, filtroMes, filtroOrigem, filtroSegmento]);
 
   const mesesDisponiveis = useMemo(() => {
     const meses = new Set();
-    mockOrders.forEach(orc => {
+
+    pedidos.forEach(orc => {
       if (orc.data_criacao) {
         meses.add(new Date(orc.data_criacao).getMonth());
       }
     });
     const nomesMeses = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
     return Array.from(meses).sort((a, b) => b - a).map(num => ({ valor: num.toString(), label: nomesMeses[num] }));
-  }, []);
+  }, [pedidos]);
 
   // ==========================================
   // FUNÇÃO DE EXPORTAÇÃO (FORMATADA PARA EXCEL BRASIL)

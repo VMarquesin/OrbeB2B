@@ -3,10 +3,11 @@ import {
   Search, Users, Building2, UserCircle, AlertCircle, 
   Plus, Edit3, Archive, X, RotateCcw 
 } from 'lucide-react';
-import { mockClients } from '../../services/mockData';
+import api from '../../services/api';
+
 
 export default function GestaoClientes() {
-  const [clientes, setClientes] = useState(mockClients);
+  const [clientes, setClientes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filtroAtivo, setFiltroAtivo] = useState('TODOS'); // 'TODOS', 'B2B', 'B2C', 'EM_RISCO', 'ARQUIVADOS'
   
@@ -23,7 +24,23 @@ export default function GestaoClientes() {
     numero: '',
     bairro: ''
   });
+  // =========================================================================
+  // 0. BUSCA REAL DOS DADOS (Conectando C# + PostgreSQL)
+  // =========================================================================
+  useEffect(() => {
+    async function carregarClientes() {
+      try {
+        // Altere '/api/clientes' para a rota exata que o Backend definiu no Controller
+        const resposta = await api.get('/api/clientes'); 
+        setClientes(resposta.data);
+      } catch (erro) {
+        console.error("Erro ao buscar clientes no banco de dados:", erro);
+      }
+    }
 
+    carregarClientes();
+  }, []);
+  
   // =========================================================================
   // 1. CÁLCULO DE MÉTRICAS DOS CARDS SUPERIORES
   // =========================================================================

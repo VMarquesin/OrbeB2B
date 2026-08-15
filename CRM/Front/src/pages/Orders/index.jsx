@@ -4,10 +4,40 @@ import {
   ShoppingCart, ArrowUpDown, Plus, Factory, Store,
   Trash2, AlertCircle, RefreshCw
 } from 'lucide-react';
-import { mockOrders, mockClients, mockProducts } from '../../services/mockData';
+import api from '../../services/api';
 
 export default function GestaoOrcamentaria() {
-  const [pedidos, setPedidos] = useState(mockOrders);
+  // =========================================================================
+  // 1. AS GAVETAS VAZIAS PARA O BANCO DE DADOS
+  // =========================================================================
+  const [pedidos, setPedidos] = useState([]);
+  const [clientes, setClientes] = useState([]);
+  const [produtos, setProdutos] = useState([]);
+
+  // =========================================================================
+  // 2. BUSCA SIMULTÂNEA NO BACKEND
+  // =========================================================================
+  useEffect(() => {
+    async function carregarDadosOrcamentarios() {
+      try {
+        // Dispara as três buscas ao mesmo tempo
+        const [resPedidos, resClientes, resProdutos] = await Promise.all([
+          api.get('/api/pedidos'),
+          api.get('/api/clientes'),
+          api.get('/api/produtos')
+        ]);
+        
+        setPedidos(resPedidos.data);
+        setClientes(resClientes.data);
+        setProdutos(resProdutos.data);
+      } catch (erro) {
+        console.error("Erro ao carregar dados da Gestão Orçamentária:", erro);
+      }
+    }
+
+    carregarDadosOrcamentarios();
+  }, []);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('TODOS');
   const [dataInicio, setDataInicio] = useState('');
@@ -132,22 +162,22 @@ export default function GestaoOrcamentaria() {
   const clientesFiltrados = useMemo(() => {
     if (!buscaCliente) return [];
     const termo = (buscaCliente || '').toLowerCase();
-    return mockClients.filter(c => {
+    return clientes.filter(c => {
       const nomeOuRazao = (c.nome_ou_razao_social || '').toLowerCase();
       const fantasia = (c.nome_fantasia || '').toLowerCase();
       return nomeOuRazao.includes(termo) || fantasia.includes(termo);
     });
-  }, [buscaCliente]);
+  }, [buscaCliente, clientes]);
 
   const produtosFiltrados = useMemo(() => {
     if (!buscaProduto) return [];
     const termo = (buscaProduto || '').toLowerCase();
-    return mockProducts.filter(p => {
+    return produtos.filter(p => {
       const desc = (p.descricao || '').toLowerCase();
       const cod = (p.codigo_comercial || '').toLowerCase();
       return desc.includes(termo) || cod.includes(termo);
     });
-  }, [buscaProduto]);
+  }, [buscaProduto, produtos]);
 
   const handlePuxarUltimoPedido = () => {
     if (!clienteSelecionado) return;
@@ -182,32 +212,35 @@ export default function GestaoOrcamentaria() {
 
   const valorTotalManual = itensManuais.reduce((acc, item) => acc + (item.quantidade * item.precoUnitario), 0);
 
-  const handleSalvarPedidoManual = () => {
+  const handleSalvarPedidoManual = async () => {
     if (!clienteSelecionado || itensManuais.length === 0) {
       alert("Selecione um cliente e adicione ao menos um produto.");
       return;
     }
     const novoPedido = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-      empresa_id: "emp-01",
+      empresa_id: "emp-01", // Mudar dinamicamente no futuro se houver multi-empresa
       cliente_id: clienteSelecionado.id,
-      codigo_pedido_formatado: `MAN-${Math.floor(1000 + Math.random() * 9000)}`,
-      origem: "Manual",
-      status_logistica: "preparando",
-      status_erp: "aprovado",
-      status: "preparando",
+      origem: 1, // Exemplo: 1 para "Manual" no C# (dependendo do Enum do backend)
       valor_total_pedido: valorTotalManual,
       observacao_negociacao: "Criado manualmente pelo operador.",
-      data_criacao: new Date().toISOString(),
-      clienteNome: clienteSelecionado.nome_fantasia || clienteSelecionado.nome_ou_razao_social,
-      resumo: `${itensManuais.length} iten(s) variados`,
       itemsDetalhados: itensManuais
     };
-    setPedidos([novoPedido, ...pedidos]);
-    setIsManualOpen(false);
-    setItensManuais([]);
-    setClienteSelecionado(null);
-    setBuscaCliente('');
+
+    try {
+      // Descomente a linha abaixo quando a rota de criação de pedido estiver 100% no C#
+      // await api.post('/api/pedidos', novoPedido);
+      
+      // Simulação local imediata (UX) enquanto aguarda
+      setPedidos([{ ...novoPedido, id: Date.now().toString(), status: 'preparando', clienteNome: clienteSelecionado.nome_ou_razao_social, codigo_pedido_formatado: 'MAN-NOVO' }, ...pedidos]);
+      setIsManualOpen(false);
+      setItensManuais([]);
+      setClienteSelecionado(null);
+      setBuscaCliente('');
+      alert("Pedido manual criado com sucesso!");
+    } catch (erro) {
+      console.error("Erro ao salvar pedido manual:", erro);
+      alert("Ocorreu um erro ao salvar o pedido no banco de dados.");
+    }
   };
 
   const handleAbrirTriagem = (pedido) => {
@@ -216,15 +249,24 @@ export default function GestaoOrcamentaria() {
     setIsTriagemOpen(true);
   };
 
-  const handleAprovarOrcamento = () => {
+  const handleAprovarOrcamento = async () => {
     if (window.confirm('Deseja aprovar este orçamento e enviá-lo para a fila de produção?')) {
-      setPedidos(prev => prev.map(p => 
-        p.id === pedidoSelecionado.id 
-          ? { ...p, status: 'preparando', status_logistica: 'preparando' } 
-          : p
-      ));
-      setIsTriagemOpen(false);
-      setPedidoSelecionado(null);
+      try {
+        // Descomente a linha abaixo quando a rota de aprovação estiver 100% no C#
+        // await api.put(`/api/pedidos/${pedidoSelecionado.id}/aprovar`);
+
+        // Atualiza a tela imediatamente (Otimista)
+        setPedidos(prev => prev.map(p => 
+          p.id === pedidoSelecionado.id 
+            ? { ...p, status: 'preparando', status_logistica: 'preparando' } 
+            : p
+        ));
+        setIsTriagemOpen(false);
+        setPedidoSelecionado(null);
+      } catch (erro) {
+        console.error("Erro ao aprovar o pedido:", erro);
+        alert("Falha na comunicação com o servidor ao aprovar.");
+      }
     }
   };
 

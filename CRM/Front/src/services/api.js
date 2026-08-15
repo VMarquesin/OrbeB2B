@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Cria a instância do Axios apontando para a variável de ambiente
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:3000/api',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5291',
   timeout: 10000, // Cancela a requisição se demorar mais de 10 segundos
   headers: {
     'Content-Type': 'application/json',

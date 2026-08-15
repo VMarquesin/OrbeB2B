@@ -5,12 +5,36 @@ import {
   CircleDollarSign, AlertCircle, Factory, Store, 
   ArrowRight, BarChart3
 } from 'lucide-react';
-import { mockOrders, mockClients } from '../../services/mockData';
+import api from '../../services/api';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  
+  // =========================================================================
+  // 0. ESTADOS PARA OS DADOS DO BANCO REAL
+  // =========================================================================
+  const [pedidos, setPedidos] = useState([]);
+  const [clientes, setClientes] = useState([]);
+
+  useEffect(() => {
+    async function carregarDadosDashboard() {
+      try {
+        // Dispara as duas buscas ao mesmo tempo para a tela carregar mais rápido (Promise.all)
+        const [respostaPedidos, respostaClientes] = await Promise.all([
+          api.get('/api/pedidos'),
+          api.get('/api/clientes')
+        ]);
+        
+        setPedidos(respostaPedidos.data);
+        setClientes(respostaClientes.data);
+      } catch (erro) {
+        console.error("Erro ao carregar dados do Dashboard:", erro);
+      }
+    }
+
+    carregarDadosDashboard();
+  }, []);
+
   // =========================================================================
   // 1. CONFIGURAÇÕES DE FÁBRICA (Sincronizado com a tela de Configurações)
   // =========================================================================
@@ -48,7 +72,7 @@ export default function Dashboard() {
     const rankingProprios = {};
     const rankingTerceiros = {};
 
-    mockOrders.forEach(pedido => {
+    pedidos.forEach(pedido => {
       // A. Carga Fabril (PCP) - Conta apenas o que está na fila de produção e é próprio
       if (pedido.status === 'preparando' || pedido.status === 'aguardando_validacao') {
         if (pedido.itemsDetalhados) {
@@ -103,7 +127,7 @@ export default function Dashboard() {
       faturamentoProprio, faturamentoTerceiro, pctProprio, pctTerceiro,
       unidadesPropriasFila, topProprios, topTerceiros
     };
-  }, []);
+  }, [pedidos]);
 
   // =========================================================================
   // 3. INDICADORES ISOLADOS (CRM e Validação)
@@ -111,9 +135,9 @@ export default function Dashboard() {
   const mesasEmUso = metricas.unidadesPropriasFila > 0 ? (metricas.unidadesPropriasFila / capacidadePorMesa).toFixed(1) : 0;
   const ocupacaoTurno = Math.min(100, ((metricas.unidadesPropriasFila / capacidadeTotalTurno) * 100)).toFixed(1);
   
-  const pedidosLandingPage = mockOrders.filter(o => o.status === 'aguardando_validacao' || o.status_logistica === 'aguardando_validacao');
-  const carteiraAtiva = mockClients.filter(c => c.status_cadastro === 'ATIVO').length;
-  const riscoEvasao = mockClients.filter(c => c.status_cadastro === 'EM_RISCO').length;
+  const pedidosLandingPage = pedidos.filter(o => o.status === 'aguardando_validacao' || o.status_logistica === 'aguardando_validacao');
+  const carteiraAtiva = clientes.filter(c => c.status_cadastro === 'ATIVO').length;
+  const riscoEvasao = clientes.filter(c => c.status_cadastro === 'EM_RISCO').length;
 
   return (
     <div className="p-8 space-y-6 bg-slate-50/50 dark:bg-slate-950/50 min-h-screen">

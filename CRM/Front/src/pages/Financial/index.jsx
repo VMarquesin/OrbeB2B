@@ -3,17 +3,34 @@ import {
   Search, Filter, DollarSign, Download, Printer, TrendingUp, 
   Calendar, FileText, CheckCircle2, X, Eye, Calculator
 } from 'lucide-react';
-import { mockOrders } from '../../services/mockData';
+import api from '../../services/api';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 export default function Faturamento() {
+
+  const [pedidos, setPedidos] = useState([]);
+
   const [buscaCliente, setBuscaCliente] = useState('');
   const [filtroMes, setFiltroMes] = useState('todos');
   const [orcamentoSelecionado, setOrcamentoSelecionado] = useState(null);
 
+  // 2. O GATILHO DE BUSCA NO BACKEND
+  useEffect(() => {
+    async function carregarFaturamento() {
+      try {
+        const resposta = await api.get('/api/pedidos'); 
+        setPedidos(resposta.data);
+      } catch (erro) {
+        console.error("Erro ao buscar histórico de faturamento:", erro);
+      }
+    }
+
+    carregarFaturamento();
+  }, []);
+
   // Filtra apenas os orçamentos que JÁ FORAM VALIDADOS (saíram da fila de pendentes)
   const orcamentosValidados = useMemo(() => {
-    return mockOrders.filter(pedido => pedido.status !== 'aguardando_validacao' && pedido.status !== 'pendente');
+    return pedidos.filter(pedido => pedido.status !== 'aguardando_validacao' && pedido.status !== 'pendente');
   }, []);
 
   // Lógica de Filtros (Cliente e Mês) - BLINDADA CONTRA TELA BRANCA
