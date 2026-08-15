@@ -37,4 +37,9 @@ public class Usuario
     {
         EstaAtivo = true;
     }
+
+    public void AtualizarNome(string nome)
+    {
+        Nome = nome;
+    }
 }

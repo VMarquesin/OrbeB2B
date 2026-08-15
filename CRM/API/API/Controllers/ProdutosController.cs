@@ -62,4 +62,65 @@ public class ProdutosController : ControllerBase
 
         return StatusCode(201, new { mensagem = "Produto cadastrado com sucesso!", id = novoProduto.Id });
     }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> AtualizarProduto(Guid id, [FromBody] ProdutoUpdateRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var produto = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+        if (produto is null)
+            return NotFound(new { mensagem = "Produto não encontrado." });
+
+        produto.AtualizarDados(
+            request.CodigoComercial,
+            request.Descricao,
+            request.Embalagem,
+            request.FornecedorId,
+            request.EhFabricacaoPropria,
+            request.PrecoAtacado,
+            request.PrecoLojista,
+            request.PrecoVarejo
+        );
+
+        await _writeRepository.AtualizarAsync(produto);
+
+        return Ok(new { mensagem = "Produto atualizado com sucesso." });
+    }
+
+    [HttpPatch("{id:guid}/inativar")]
+    public async Task<IActionResult> InativarProduto(Guid id)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var produto = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+        if (produto is null)
+            return NotFound(new { mensagem = "Produto não encontrado." });
+
+        produto.Inativar();
+        await _writeRepository.AtualizarAsync(produto);
+
+        return Ok(new { mensagem = "Produto inativado com sucesso." });
+    }
+
+    [HttpPatch("{id:guid}/reativar")]
+    public async Task<IActionResult> ReativarProduto(Guid id)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var produto = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+        if (produto is null)
+            return NotFound(new { mensagem = "Produto não encontrado." });
+
+        produto.Reativar();
+        await _writeRepository.AtualizarAsync(produto);
+
+        return Ok(new { mensagem = "Produto reativado com sucesso." });
+    }
 }

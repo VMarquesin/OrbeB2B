@@ -6,4 +6,6 @@ public interface IProdutoWriteRepository
 {
     Task<bool> CodigoComercialJaCadastradoAsync(Guid empresaId, string codigoComercial);
     Task CadastrarProdutoAsync(Produto produto);
+    Task<Produto?> ObterPorIdEEmpresaAsync(Guid id, Guid empresaId);
+    Task AtualizarAsync(Produto produto);
 }

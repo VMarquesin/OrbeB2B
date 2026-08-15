@@ -24,4 +24,16 @@ public class ProdutoWriteRepository : IProdutoWriteRepository
         await _context.Produtos.AddAsync(produto);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<Produto?> ObterPorIdEEmpresaAsync(Guid id, Guid empresaId)
+    {
+        return await _context.Produtos
+            .FirstOrDefaultAsync(p => p.Id == id && p.EmpresaId == empresaId);
+    }
+
+    public async Task AtualizarAsync(Produto produto)
+    {
+        _context.Produtos.Update(produto);
+        await _context.SaveChangesAsync();
+    }
 }

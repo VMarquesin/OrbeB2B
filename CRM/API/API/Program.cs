@@ -24,6 +24,11 @@ builder.Services.AddDbContext<CrmDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+#if DEBUG
+// Serviço de Seed/Reset — apenas em desenvolvimento
+builder.Services.AddScoped<DatabaseDevService>();
+#endif
+
 // Injeção de Dependência dos Serviços de Identidade
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
@@ -54,6 +59,9 @@ builder.Services.AddScoped<IProdutoWriteRepository, ProdutoWriteRepository>();
 
 builder.Services.AddScoped<IPedidoReadRepository, PedidoReadRepository>();
 builder.Services.AddScoped<IPedidoWriteRepository, PedidoWriteRepository>();
+
+builder.Services.AddScoped<ISolicitacaoEnderecoReadRepository, SolicitacaoEnderecoReadRepository>();
+builder.Services.AddScoped<IInteligenciaReadRepository, InteligenciaReadRepository>();
 
 // Configuração do JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"];
