@@ -74,4 +74,63 @@ public class UsuariosController : ControllerBase
 
         return StatusCode(201, new { mensagem = "Usuário criado com sucesso!" });
     }
-}
+
+    [HttpPut("{id:guid}")]
+    [Authorize(Roles = "AdminMaster")]
+    public async Task<IActionResult> AtualizarColaborador(Guid id, [FromBody] ColaboradorUpdateRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var (usuario, funcionario) = await _writeRepository.ObterColaboradorPorIdEEmpresaAsync(id, empresaId);
+
+        if (usuario is null || funcionario is null)
+            return NotFound(new { mensagem = "Colaborador não encontrado nesta empresa." });
+
+        usuario.AtualizarNome(request.Nome);
+        funcionario.AtualizarDados(request.Cargo, request.Departamento);
+
+        await _writeRepository.AtualizarColaboradorAsync(usuario, funcionario);
+
+        return Ok(new { mensagem = "Colaborador atualizado com sucesso." });
+    }
+
+    [HttpPatch("{id:guid}/inativar")]
+    [Authorize(Roles = "AdminMaster")]
+    public async Task<IActionResult> InativarColaborador(Guid id)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var (usuario, funcionario) = await _writeRepository.ObterColaboradorPorIdEEmpresaAsync(id, empresaId);
+
+        if (usuario is null || funcionario is null)
+            return NotFound(new { mensagem = "Colaborador não encontrado nesta empresa." });
+
+        usuario.Inativar();
+        await _writeRepository.AtualizarColaboradorAsync(usuario, funcionario);
+
+        return Ok(new { mensagem = "Colaborador inativado com sucesso." });
+    }
+
+    [HttpPatch("{id:guid}/reativar")]
+    [Authorize(Roles = "AdminMaster")]
+    public async Task<IActionResult> ReativarColaborador(Guid id)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var (usuario, funcionario) = await _writeRepository.ObterColaboradorPorIdEEmpresaAsync(id, empresaId);
+
+        if (usuario is null || funcionario is null)
+            return NotFound(new { mensagem = "Colaborador não encontrado nesta empresa." });
+
+        usuario.Ativar();
+        await _writeRepository.AtualizarColaboradorAsync(usuario, funcionario);
+
+        return Ok(new { mensagem = "Colaborador reativado com sucesso." });
+    }
+}

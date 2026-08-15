@@ -62,4 +62,85 @@ public class ClientesController : ControllerBase
 
         return StatusCode(201, new { mensagem = "Cliente cadastrado com sucesso!", id = novoCliente.Id });
     }
+
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> AtualizarStatusCliente(Guid id, [FromBody] AtualizarStatusClienteRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid(); 
+
+        var cliente = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+
+        if (cliente is null)
+            return NotFound(new { mensagem = "Cliente não encontrado." });
+
+        cliente.AtualizarStatusCadastro(request.Status);
+
+        await _writeRepository.AtualizarAsync(cliente);
+
+        return Ok(new { mensagem = "Status do cliente atualizado com sucesso." });
+    }
+
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> AtualizarCliente(Guid id, [FromBody] ClienteUpdateRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var cliente = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+        if (cliente is null)
+            return NotFound(new { mensagem = "Cliente não encontrado." });
+
+        cliente.AtualizarDados(
+            request.CidadeId,
+            request.NomeOuRazaoSocial,
+            request.NomeFantasia,
+            request.TipoSegmento,
+            request.Cep,
+            request.Logradouro,
+            request.Numero,
+            request.Bairro
+        );
+
+        await _writeRepository.AtualizarAsync(cliente);
+
+        return Ok(new { mensagem = "Cliente atualizado com sucesso." });
+    }
+
+    [HttpPatch("{id:guid}/inativar")]
+    public async Task<IActionResult> InativarCliente(Guid id)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var cliente = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+        if (cliente is null)
+            return NotFound(new { mensagem = "Cliente não encontrado." });
+
+        cliente.Inativar();
+        await _writeRepository.AtualizarAsync(cliente);
+
+        return Ok(new { mensagem = "Cliente inativado com sucesso." });
+    }
+
+    [HttpPatch("{id:guid}/reativar")]
+    public async Task<IActionResult> ReativarCliente(Guid id)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var cliente = await _writeRepository.ObterPorIdEEmpresaAsync(id, empresaId);
+        if (cliente is null)
+            return NotFound(new { mensagem = "Cliente não encontrado." });
+
+        cliente.Reativar();
+        await _writeRepository.AtualizarAsync(cliente);
+
+        return Ok(new { mensagem = "Cliente reativado com sucesso." });
+    }
 }

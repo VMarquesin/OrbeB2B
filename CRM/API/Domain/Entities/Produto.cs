@@ -40,4 +40,23 @@ public class Produto
     {
         EstaAtivo = false;
     }
+
+    public void Reativar()
+    {
+        EstaAtivo = true;
+    }
+
+    public void AtualizarDados(string codigoComercial, string descricao, string embalagem,
+                                Guid fornecedorId, bool ehFabricacaoPropria,
+                                decimal precoAtacado, decimal precoLojista, decimal precoVarejo)
+    {
+        CodigoComercial = codigoComercial;
+        Descricao = descricao;
+        Embalagem = embalagem;
+        FornecedorId = fornecedorId;
+        EhFabricacaoPropria = ehFabricacaoPropria;
+        PrecoAtacado = precoAtacado;
+        PrecoLojista = precoLojista;
+        PrecoVarejo = precoVarejo;
+    }
 }

@@ -1,9 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using OrbeB2B.Crm.Application.Models;
 using OrbeB2B.Crm.Application.Services.Interfaces;
-using OrbeB2B.Crm.Domain.Entities;
-using System;
-using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -19,14 +17,14 @@ public class JwtTokenService : ITokenService
         _configuration = configuration;
     }
 
-    public string GenerateToken(Usuario usuario, Empresa empresa, PerfilUsuario perfil)
+    public string GerarToken(UsuarioAuthModel usuario)
     {
         var claims = new List<Claim>
         {
             new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
             new Claim(ClaimTypes.Email, usuario.Email),
-            new Claim(ClaimTypes.Role, perfil.NomePerfil),
-            new Claim("TenantId", empresa.Id.ToString())
+            new Claim(ClaimTypes.Role, usuario.NomePerfil),
+            new Claim("TenantId", usuario.EmpresaId.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));

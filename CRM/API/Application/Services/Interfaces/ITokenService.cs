@@ -1,8 +1,8 @@
-using OrbeB2B.Crm.Domain.Entities;
+using OrbeB2B.Crm.Application.Models;
 
 namespace OrbeB2B.Crm.Application.Services.Interfaces;
 
 public interface ITokenService
 {
-    string GenerateToken(Usuario usuario, Empresa empresa, PerfilUsuario perfil);
+    string GerarToken(UsuarioAuthModel usuario);
 }

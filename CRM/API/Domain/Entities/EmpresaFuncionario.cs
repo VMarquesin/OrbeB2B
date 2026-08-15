@@ -23,4 +23,10 @@ public class EmpresaFuncionario
         
         DataAdmissao = DateTime.UtcNow;
     }
+
+    public void AtualizarDados(string cargo, string departamento)
+    {
+        Cargo = cargo;
+        Departamento = departamento;
+    }
 }

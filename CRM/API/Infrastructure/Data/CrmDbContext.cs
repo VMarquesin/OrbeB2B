@@ -20,6 +20,7 @@ public class CrmDbContext : DbContext
     public DbSet<Cliente> Clientes { get; set; }
     public DbSet<Pedido> Pedidos { get; set; }
     public DbSet<PedidoItem> PedidoItens { get; set; }
+    public DbSet<SolicitacaoAlteracaoEndereco> SolicitacoesAlteracaoEndereco { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

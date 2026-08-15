@@ -1,10 +1,15 @@
+using FluentValidation;
+using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using OrbeB2B.Crm.API.Middlewares;
+using OrbeB2B.Crm.API.Validators;
 using OrbeB2B.Crm.Application.Services.Interfaces;
 using OrbeB2B.Crm.Infrastructure.Data;
 using OrbeB2B.Crm.Infrastructure.Identity;
+using OrbeB2B.Crm.Infrastructure.Services;
 using OrbeB2B.Crm.Application.Data;
 using OrbeB2B.Crm.Application.Repositories;
 using OrbeB2B.Crm.Infrastructure.Data.Repositories;
@@ -19,10 +24,18 @@ builder.Services.AddDbContext<CrmDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
 
+#if DEBUG
+// Serviço de Seed/Reset — apenas em desenvolvimento
+builder.Services.AddScoped<DatabaseDevService>();
+#endif
+
 // Injeção de Dependência dos Serviços de Identidade
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 builder.Services.AddScoped<ITokenService, JwtTokenService>();
 builder.Services.AddScoped<IDbConnectionFactory, PgSqlConnectionFactory>();
+
+builder.Services.AddScoped<IAuthReadRepository, AuthReadRepository>();
+builder.Services.AddScoped<ILookupReadRepository, LookupReadRepository>();
 
 builder.Services.AddScoped<IUsuarioReadRepository, UsuarioReadRepository>();
 builder.Services.AddScoped<IUsuarioWriteRepository, UsuarioWriteRepository>();
@@ -47,6 +60,9 @@ builder.Services.AddScoped<IProdutoWriteRepository, ProdutoWriteRepository>();
 builder.Services.AddScoped<IPedidoReadRepository, PedidoReadRepository>();
 builder.Services.AddScoped<IPedidoWriteRepository, PedidoWriteRepository>();
 
+builder.Services.AddScoped<ISolicitacaoEnderecoReadRepository, SolicitacaoEnderecoReadRepository>();
+builder.Services.AddScoped<IInteligenciaReadRepository, InteligenciaReadRepository>();
+
 // Configuração do JWT Bearer
 var jwtKey = builder.Configuration["Jwt:Key"];
 var jwtIssuer = builder.Configuration["Jwt:Issuer"];
@@ -68,6 +84,10 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     });
 
 builder.Services.AddAuthorization();
+
+// FluentValidation: intercepta requests inválidos → retorna 400 automaticamente
+builder.Services.AddFluentValidationAutoValidation();
+builder.Services.AddValidatorsFromAssemblyContaining<ClienteCreateRequestValidator>();
 
 // Prepara o motor de endpoints baseados em classes (Controllers)
 builder.Services.AddControllers();
@@ -102,9 +122,16 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
+// HttpClient para integração com ViaCEP
+builder.Services.AddScoped<IViaCepService, ViaCepService>();
+builder.Services.AddHttpClient<ViaCepService>();
+
 var app = builder.Build();
 
 // === CONFIGURAÇÃO DO PIPELINE HTTP ===
+
+// DEVE ser o primeiro middleware — captura exceções de todo o pipeline
+app.UseMiddleware<GlobalExceptionMiddleware>();
 
 if (app.Environment.IsDevelopment())
 {

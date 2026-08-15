@@ -38,4 +38,21 @@ public class UsuarioWriteRepository : IUsuarioWriteRepository
             throw;
         }
     }
-}
+
+    public async Task<(Usuario? usuario, EmpresaFuncionario? funcionario)> ObterColaboradorPorIdEEmpresaAsync(Guid usuarioId, Guid empresaId)
+    {
+        var usuario = await _context.Usuarios.FindAsync(usuarioId);
+
+        var funcionario = await _context.EmpresaFuncionarios
+            .FirstOrDefaultAsync(f => f.UsuarioId == usuarioId && f.EmpresaId == empresaId);
+
+        return (usuario, funcionario);
+    }
+
+    public async Task AtualizarColaboradorAsync(Usuario usuario, EmpresaFuncionario funcionario)
+    {
+        _context.Usuarios.Update(usuario);
+        _context.EmpresaFuncionarios.Update(funcionario);
+        await _context.SaveChangesAsync();
+    }
+}

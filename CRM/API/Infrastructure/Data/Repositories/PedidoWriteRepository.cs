@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using OrbeB2B.Crm.Application.Repositories;
 using OrbeB2B.Crm.Domain.Entities;
 
@@ -28,5 +29,17 @@ public class PedidoWriteRepository : IPedidoWriteRepository
             await transaction.RollbackAsync();
             throw;
         }
+    }
+
+    public async Task<Pedido?> ObterPorIdEEmpresaAsync(Guid id, Guid empresaId)
+    {
+        return await _context.Pedidos
+            .FirstOrDefaultAsync(p => p.Id == id && p.EmpresaId == empresaId);
+    }
+
+    public async Task AtualizarAsync(Pedido pedido)
+    {
+        _context.Pedidos.Update(pedido);
+        await _context.SaveChangesAsync();
     }
 }

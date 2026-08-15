@@ -18,6 +18,7 @@ public class Cliente
     public string Bairro { get; private set; }
     public StatusCadastroCliente StatusCadastro { get; private set; }
     public DateTime DataCadastro { get; private set; }
+    public bool EstaAtivo { get; private set; }
 
     protected Cliente() { }
 
@@ -37,5 +38,35 @@ public class Cliente
         
         StatusCadastro = StatusCadastroCliente.Pendente;
         DataCadastro = DateTime.UtcNow;
+        EstaAtivo = true;
+    }
+
+    public void AtualizarStatusCadastro(StatusCadastroCliente novoStatus)
+    {
+        StatusCadastro = novoStatus;
+    }
+
+    public void Inativar()
+    {
+        EstaAtivo = false;
+    }
+
+    public void Reativar()
+    {
+        EstaAtivo = true;
+    }
+
+    public void AtualizarDados(Guid cidadeId, string nomeOuRazaoSocial, string nomeFantasia,
+                                TipoSegmentoCliente tipoSegmento, string cep,
+                                string logradouro, string numero, string bairro)
+    {
+        CidadeId = cidadeId;
+        NomeOuRazaoSocial = nomeOuRazaoSocial;
+        NomeFantasia = nomeFantasia;
+        TipoSegmento = tipoSegmento;
+        Cep = cep;
+        Logradouro = logradouro;
+        Numero = numero;
+        Bairro = bairro;
     }
 }

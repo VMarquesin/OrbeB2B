@@ -32,4 +32,14 @@ public class Usuario
     {
         EstaAtivo = false;
     }
+
+    public void Ativar()
+    {
+        EstaAtivo = true;
+    }
+
+    public void AtualizarNome(string nome)
+    {
+        Nome = nome;
+    }
 }

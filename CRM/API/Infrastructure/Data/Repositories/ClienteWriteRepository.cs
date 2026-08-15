@@ -24,4 +24,16 @@ public class ClienteWriteRepository : IClienteWriteRepository
         await _context.Clientes.AddAsync(cliente);
         await _context.SaveChangesAsync();
     }
+
+    public async Task<Cliente?> ObterPorIdEEmpresaAsync(Guid id, Guid empresaId)
+    {
+        return await _context.Clientes
+            .FirstOrDefaultAsync(c => c.Id == id && c.EmpresaId == empresaId);
+    }
+
+    public async Task AtualizarAsync(Cliente cliente)
+    {
+        _context.Clientes.Update(cliente);
+        await _context.SaveChangesAsync();
+    }
 }
