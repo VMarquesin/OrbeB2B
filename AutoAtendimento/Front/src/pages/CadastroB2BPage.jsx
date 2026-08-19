@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Store, Building2, User, Mail, Phone, Lock, Eye, EyeOff, UserPlus, ShieldCheck, } from 'lucide-react';
+import { Store, Building2, User, Mail, Phone, Lock, Eye, EyeOff, UserPlus, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import logo from '../assets/logo.jpg';
 
 export default function CadastroB2BPage() {
@@ -99,43 +99,140 @@ export default function CadastroB2BPage() {
     }
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col items-center justify-center px-4">
-      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-sm z-50">
-        <div className="max-w-7xl mx-auto h-full flex items-center px-8">
-        <Link to="/" className="flex items-center gap-3">
-          <img
-           src={logo}
-            alt="A Caseira"
-            className="h-20 object-contain"
-         />
-         <span className="text-black font-bold text-lg">A Caseira</span>
-        </Link>
-        </div>
-      </header>
-      <div className="flex flex-col items-center justify-center px-4 pt-24 pb-12">
+    <div className="min-h-screen bg-stone-100">
+      <header className="fixed top-0 left-0 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-stone-200/80 z-50">
+        <div className="max-w-7xl mx-auto h-full px-6 lg:px-8 flex items-center justify-between">
 
-      <div className="w-full max-w-sm bg-white rounded-2xl shadow-lg overflow-hidden">
+          {/* Logo */}
+          <Link
+            to="/"
+            className="flex items-center gap-3 group"
+          >
+            <div className="h-[52px] w-[52px] rounded-xl overflow-hidden flex items-center justify-center bg-stone-50 border border-stone-200">
+              <img
+                src={logo}
+                alt="A Caseira"
+                className="h-full w-full object-contain"
+              />
+            </div>
 
-        <div className="h-1.5 bg-primary" />
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-bold text-stone-900">
+                A Caseira
+              </span>
 
-        <div className="px-8 py-8">
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                Portal B2B
+              </span>
+            </div>
+          </Link>
 
-          <div className="flex flex-col items-center mb-6">
+          {/* Lado direito */}
+          <div className="flex items-center gap-4">
 
-            <h1 className="text-2xl font-bold text-stone-800">
-              A Caseira
-            </h1>
+            <div className="hidden sm:flex items-center gap-2 text-sm text-stone-500">
+              <ShieldCheck className="w-4 h-4 text-primary" />
+              <span>Ambiente seguro</span>
+            </div>
 
-            <p className="text-sm text-stone-400">
-              Criar acesso B2B
-            </p>
+            <div className="h-6 w-px bg-stone-200 hidden sm:block" />
+
+            <Link
+              to="/login"
+              className="text-sm font-semibold text-stone-600 hover:text-primary transition-colors"
+            >
+              Já tenho acesso
+            </Link>
+
+            <Link
+              to="/login"
+              className="hidden sm:inline-flex items-center justify-center px-4 py-2 rounded-lg border border-stone-200 text-sm font-semibold text-stone-700 hover:border-primary hover:text-primary hover:bg-primary/5 transition-all"
+            >
+              Entrar
+            </Link>
 
           </div>
 
+        </div>
+      </header>
+      <div className="max-w-6xl mx-auto px-4 pt-28 pb-12">
+
+    <div className="grid grid-cols-1 lg:grid-cols-[0.8fr_1.2fr] gap-8 items-start">
+
+    {/* Painel institucional */}
+    <div className="hidden lg:flex flex-col justify-center bg-primary rounded-3xl p-10 text-white min-h-[600px]">
+
+      <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center mb-6">
+        <Store className="w-7 h-7" />
+      </div>
+
+      <p className="text-sm font-semibold text-white/70 uppercase tracking-wider">
+        Portal B2B
+      </p>
+
+      <h2 className="text-3xl font-bold mt-2 leading-tight">
+        Venda e compre com a A Caseira.
+      </h2>
+
+      <p className="mt-4 text-sm text-white/75 leading-relaxed">
+        Crie seu acesso empresarial para consultar nosso catálogo,
+        realizar pedidos e acompanhar suas compras.
+      </p>
+
+      <div className="mt-8 space-y-4">
+
+        <div className="flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="text-sm">
+            Catálogo exclusivo para empresas
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="text-sm">
+            Condições comerciais B2B
+          </span>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <CheckCircle2 className="w-5 h-5" />
+          <span className="text-sm">
+            Acompanhamento de pedidos
+          </span>
+        </div>
+
+      </div>
+
+    </div>
+
+    {/* Cadastro */}
+    <div className="w-full bg-white rounded-3xl shadow-xl border border-stone-200 overflow-hidden">
+
+        <div className="px-8 pt-8 pb-5 border-b border-stone-100">
+          <h1 className="text-2xl font-bold text-stone-900">
+            Criar acesso B2B
+          </h1>
+
+          <p className="mt-1 text-sm text-stone-500">
+            Preencha os dados da sua empresa para solicitar acesso ao portal.
+          </p>
+        </div>
+
           <form 
             onSubmit={handleSubmit}
-            className="space-y-4"
+            className="space-y-4 px-8 pt-5 pb-8"
           >
+
+            <div className="mb-2">
+              <h2 className="text-sm font-bold text-stone-800">
+                Dados da empresa
+              </h2>
+
+              <p className="text-xs text-stone-400 mt-1">
+                Informe os dados cadastrais da empresa.
+              </p>
+            </div>
 
             <div>
               <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
@@ -169,11 +266,12 @@ export default function CadastroB2BPage() {
                 </p>
               )}
             </div>
-            <div>
-
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              
+              <div>
             <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
               Razão Social
-              </label>
+            </label>
 
             <Input
               icon={<Building2 />}
@@ -184,9 +282,8 @@ export default function CadastroB2BPage() {
               error={errors.company}
             />
             </div>
-            <div>
 
-              <div>
+            <div>
                 <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
                   Nome Fantasia
                 </label>
@@ -200,7 +297,9 @@ export default function CadastroB2BPage() {
                   error={errors.fantasyName}
                 />
               </div>
+              </div>
 
+              <div> 
               <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
                 CNPJ
               </label>
@@ -214,6 +313,16 @@ export default function CadastroB2BPage() {
               error={errors.cnpj}
             />
             </div>
+            <div className="pt-4 border-t border-stone-100 mb-2">
+              <h2 className="text-sm font-bold text-stone-800">
+                Dados do responsável
+              </h2>
+
+              <p className="text-xs text-stone-400 mt-1">
+                Informe os dados da pessoa responsável pelo acesso.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
 
             <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
@@ -227,6 +336,20 @@ export default function CadastroB2BPage() {
               value={form.name}
               onChange={handleChange}
               error={errors.name}
+            />
+            </div>
+
+             <div>
+            <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
+                Telefone
+              </label>
+            <Input
+              icon={<Phone />}
+              name="phone"
+              placeholder="(00) 00000-0000"
+              value={form.phone}
+              onChange={handleChange}
+              error={errors.phone}
             />
             </div>
 
@@ -244,111 +367,114 @@ export default function CadastroB2BPage() {
               error={errors.email}
             />
             </div>
-
-            <div>
-            <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
-                Telefone
-              </label>
-            <Input
-              icon={<Phone />}
-              name="phone"
-              placeholder="(00) 00000-0000"
-              value={form.phone}
-              onChange={handleChange}
-              error={errors.phone}
-            />
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
-                Senha
-              </label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
-              <div className="relative">
+  {/* Senha */}
+  <div>
+    <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
+      Senha
+    </label>
 
-              <Lock
-                className="
-                absolute left-3 top-1/2
-                -translate-y-1/2
-                w-4 h-4 text-stone-400
-                "
-             />
+    <div className="relative">
+      <Lock
+        className="
+          absolute left-3 top-1/2
+          -translate-y-1/2
+          w-4 h-4 text-stone-400
+        "
+      />
 
-            <input
-              type={showPassword ? "text" : "password"}
-              name="password"
-              placeholder="Senha"
-              value={form.password}
-              onChange={handleChange}
-              className={`
-                w-full pl-9 pr-10 py-2.5
-                text-sm
-                rounded-lg
-                bg-stone-50
-                focus:ring-2
-                focus:ring-primary/30
-              ${
-                errors.password
-                ? "border border-red-500"
-                : "border border-stone-200"
-                }
-              `}
-            />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="
-                absolute right-3 top-1/2
-                -translate-y-1/2
-                text-stone-400
-                "
-              >
-              {showPassword
-                ? <EyeOff className="w-4 h-4"/>
-                : <Eye className="w-4 h-4"/>
-              }
-             </button>
-            </div>
-          </div>
+      <input
+        type={showPassword ? "text" : "password"}
+        name="password"
+        placeholder="Senha"
+        value={form.password}
+        onChange={handleChange}
+        className={`
+          w-full pl-9 pr-10 py-2.5
+          text-sm
+          rounded-lg
+          bg-stone-50
+          focus:outline-none
+          focus:ring-2
+          focus:ring-primary/20
+          ${
+            errors.password
+              ? "border-red-500"
+              : "border-stone-200"
+          }
+        `}
+      />
 
-              {errors.password && (
-                <p className="text-red-500 text-xs mt-1">
-                  Informe a senha.
-                </p>
-              )}
+      <button
+        type="button"
+        onClick={() => setShowPassword(!showPassword)}
+        className="
+          absolute right-3 top-1/2
+          -translate-y-1/2
+          text-stone-400
+        "
+      >
+        {showPassword
+          ? <EyeOff className="w-4 h-4" />
+          : <Eye className="w-4 h-4" />
+        }
+      </button>
+    </div>
 
-              <div>
+    {errors.password && (
+      <p className="text-red-500 text-xs mt-1">
+        {errors.password}
+      </p>
+    )}
+  </div>
 
-                  <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
-                    Confirmar Senha
-                  </label>
+  {/* Confirmar senha */}
+  <div>
+    <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
+      Confirmar Senha
+    </label>
 
-                  <div className="relative">
+    <div className="relative">
+      <Lock
+        className="
+          absolute left-3 top-1/2
+          -translate-y-1/2
+          w-4 h-4 text-stone-400
+        "
+      />
 
-                    <Lock
-                      className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-stone-400"
-                    />
+      <input
+        type={showPassword ? "text" : "password"}
+        name="confirmPassword"
+        placeholder="Confirme sua senha"
+        value={form.confirmPassword}
+        onChange={handleChange}
+        className={`
+          w-full pl-9 pr-10 py-2.5
+          rounded-lg
+          bg-stone-50
+          border
+          ${
+            errors.confirmPassword
+              ? "border-red-500"
+              : "border-stone-200"
+          }
+        `}
+      />
+    </div>
 
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      name="confirmPassword"
-                      placeholder="Confirme sua senha"
-                      value={form.confirmPassword}
-                      onChange={handleChange}
-                      className="w-full pl-9 pr-10 py-2.5 rounded-lg bg-stone-50 border border-stone-200"
-                    />
+    {errors.confirmPassword && (
+      <p className="text-red-500 text-xs mt-1">
+        {errors.confirmPassword}
+      </p>
+    )}
+     </div>
+    </div>
 
-                  </div>
-
-                  {errors.confirmPassword && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.confirmPassword}
-                    </p>
-                  )}
-
-                </div>
-
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 sm:col-span-2">  
 
                 <input
                   type="checkbox"
@@ -391,18 +517,25 @@ export default function CadastroB2BPage() {
                 </p>
               )}
 
-            <button
-              className="
-              w-full flex items-center justify-center gap-2
-              py-3
+            <button 
+            type="submit"
+            className="
+              w-full
+              flex items-center justify-center gap-2
+              py-3.5
+              mt-2
               bg-primary
               hover:bg-primary-hover
+              active:scale-[0.99]
               text-white
               font-semibold
-              rounded-lg
-              shadow-md
-              "
-            >
+              rounded-xl
+              shadow-lg
+              shadow-primary/20
+              transition-all
+            "
+          >
+            
 
               Criar acesso
 
@@ -421,9 +554,8 @@ export default function CadastroB2BPage() {
       </div>
 
         {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-
-          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+        <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center border border-stone-100">
 
             <div className="mx-auto w-16 h-16 rounded-full bg-green-100 flex items-center justify-center mb-5">
               <ShieldCheck className="w-8 h-8 text-green-600" />
@@ -455,9 +587,11 @@ export default function CadastroB2BPage() {
 
         </div>
       )}
+      
+    </div>
+  </div>
 
-            </div>
-          </div>
+                    
   );
 }
 
@@ -475,7 +609,7 @@ export default function CadastroB2BPage() {
 
         <span
           className="
-            absolute left-3 top-1/2
+            absolute left-3.5 top-1/2
             -translate-y-1/2
             text-stone-400
           "
@@ -489,13 +623,18 @@ export default function CadastroB2BPage() {
           onChange={onChange}
           placeholder={placeholder}
           className={`
-            w-full pl-9 pr-4 py-2.5
+            w-full
+            pl-10 pr-4
+            py-3
             text-sm
-            rounded-lg
+            rounded-xl
             bg-stone-50
+            border
+            transition
             focus:outline-none
+            focus:bg-white
             focus:ring-2
-            focus:ring-primary/30
+            focus:ring-primary/20
             ${
               error
                 ? "border border-red-500"
@@ -511,7 +650,7 @@ export default function CadastroB2BPage() {
           {error}
         </p>
       )}
-
     </div>
   );
-} 
+}
+    

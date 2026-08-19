@@ -3,8 +3,8 @@ import { Wheat, ArrowRight, Mail, Phone } from 'lucide-react';
 
 const empresaLinks = [
   { label: 'Sobre Nós', href: '#historia' },
-  { label: 'Catálogo de Produtos', href: '#catalogo' },
-  { label: 'Seja um Distribuidor', href: '#parceiros' },
+  { label: 'Catálogo de Produtos', href: '/catalogo' },
+  { label: 'Seja um Distribuidor', href: '/seja-parceiro' },
 ];
 const contatoLinks = [
   { label: 'Fale Conosco', href: '#area-lojista' },

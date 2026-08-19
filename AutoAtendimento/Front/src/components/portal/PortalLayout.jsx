@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Store, ShoppingCart, Bell, UserCircle, X, LogOut, Building2 } from 'lucide-react';
+import { Store, ShoppingCart, Bell, UserCircle, X, LogOut, Building2, Pencil } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
+import logo from '../../assets/logo.jpg';
 
 const navLinks = [
   { label: 'Catálogo', to: '/portal/catalogo', end: true },
@@ -10,7 +11,11 @@ const navLinks = [
 ];
 
 const mockEmpresa = {
+  nomeResponsavel: 'João da Silva',
+  telefone: '(11) 98765-4321',
+  email: 'joao.silva@empresa.com',
   razaoSocial: 'Supermercado Dois Irmãos LTDA',
+  nomeFantasia: 'Supermercado Dois Irmãos',
   cnpj: '12.345.678/0001-90',
   endereco: 'Av. Central, 1500 - Galpão 3, Centro Comercial',
   cidade: 'São Paulo, SP - 01000-000',
@@ -95,6 +100,18 @@ async function buscarCep(cep) {
     [name]: value,
   }));
 }
+
+useEffect(() => {
+  if (isModalOpen || showAddressModal || isCartModalOpen) {
+    document.body.style.overflow = 'hidden';
+  } else {
+    document.body.style.overflow = '';
+  }
+
+  return () => {
+    document.body.style.overflow = '';
+  };
+}, [isModalOpen, showAddressModal, isCartModalOpen]);
 
   function enviarSolicitacao() {
 
@@ -189,16 +206,31 @@ JSON.stringify([
 }
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col">
-      <header className="sticky top-0 z-40 bg-white border-b border-stone-200 shadow-sm">
+      <header className="sticky top-0 z-40 bg-white/95 border-b border-stone-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <nav className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/portal" className="flex items-center gap-2 shrink-0">
-              <Store className="h-5 w-5 text-primary" strokeWidth={1.75} />
-              <span className="text-base font-bold text-stone-900">
-                A Caseira{' '}
-                <span className="text-primary">| Portal B2B</span>
-              </span>
+           <Link 
+              to="/portal" 
+              className="flex items-center gap-3 shrink-0"
+            >
+              <div className="h-[52px] w-[52px] rounded-xl overflow-hidden flex items-center justify-center bg-stone-50 border border-stone-200">
+                <img 
+                  src={logo} 
+                  alt="A Caseira" 
+                  className="h-full w-full object-contain"
+                />
+              </div>
+
+              <div className="flex flex-col leading-tight">
+                <span className="text-base font-bold text-stone-900">
+                  A Caseira
+                </span>
+
+                <span className="text-xs font-semibold text-primary">
+                  Portal B2B
+                </span>
+              </div>
             </Link>
 
             {/* Nav links */}
@@ -224,74 +256,130 @@ JSON.stringify([
 
             {/* Right icons */}
             <div className="flex items-center gap-4 text-stone-400">
-              <button
-                onClick={() => setIsCartModalOpen(true)}
-                className="relative hover:text-stone-700 transition-colors"
-                aria-label="Carrinho"
+
+          {/* Carrinho */}
+          <button
+            onClick={() => setIsCartModalOpen(true)}
+            className="relative flex items-center justify-center w-7 h-7
+                      text-stone-400 hover:text-stone-700 transition-colors"
+            aria-label="Carrinho"
+          >
+            <ShoppingCart
+              className="w-5 h-5"
+              strokeWidth={1.75}
+            />
+
+            {totalItems > 0 && (
+              <span
+                className="absolute -top-1 -right-1
+                          w-4 h-4 rounded-full
+                          bg-primary text-white
+                          text-[10px] font-bold
+                          flex items-center justify-center"
               >
-                <ShoppingCart className="w-5 h-5" strokeWidth={1.75} />
+                {totalItems}
+              </span>
+            )}
+          </button>
 
-                {totalItems > 0 && (
-                  <span className="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-primary text-white text-[10px] font-bold flex items-center justify-center">
-                    {totalItems}
-                  </span>
-                )}
-              </button>
-              <button
-                className="hover:text-stone-700 transition-colors"
-                aria-label="Notificações"
+          {/* Notificações */}
+          <button
+            className="flex items-center justify-center w-7 h-7
+                      text-stone-400 hover:text-stone-700 transition-colors"
+            aria-label="Notificações"
+          >
+            <Bell
+              className="w-5 h-5"
+              strokeWidth={1.75}
+            />
+          </button>
+
+         {/* Perfil */}
+            <div className="relative" ref={dropdownRef}>
+
+              <button 
+                onClick={() => setIsDropdownOpen((v) => !v)}
+                className={`
+                  flex items-center justify-center
+                  w-7 h-7
+                  transition-colors
+                  ${
+                    isDropdownOpen
+                      ? 'text-primary'
+                      : 'text-stone-400 hover:text-stone-700'
+                  }
+                `}
+                aria-label="Perfil"
+                aria-expanded={isDropdownOpen}
               >
-                <Bell className="w-5 h-5" strokeWidth={1.75} />
+                <UserCircle 
+                  className="w-5 h-5" 
+                  strokeWidth={1.75} 
+                />
               </button>
 
-              {/* User dropdown trigger */}
-              <div className="relative" ref={dropdownRef}>
-                <button
-                  onClick={() => setIsDropdownOpen((v) => !v)}
-                  className={`hover:text-stone-700 transition-colors ${
-                    isDropdownOpen ? 'text-primary' : ''
-                  }`}
-                  aria-label="Perfil"
-                  aria-expanded={isDropdownOpen}
-                >
-                  <UserCircle className="w-5 h-5" strokeWidth={1.75} />
-                </button>
+              {/* Dropdown menu */}
+              {isDropdownOpen && (
+                <div className="
+                  absolute
+                  left-1/2
+                  -translate-x-1/2
+                  top-full
+                  mt-2
+                  w-52
+                  bg-white
+                  rounded-xl
+                  border border-stone-200
+                  shadow-xl
+                  py-1.5
+                  z-50
+                ">
 
-                {/* Dropdown menu */}
-                {isDropdownOpen && (
-                  <div className="absolute right-0 top-full mt-2 w-52 bg-white rounded-xl border border-stone-200 shadow-xl py-1.5 z-50">
-                    <div className="px-4 py-2.5 border-b border-stone-100 mb-1">
-                      <p className="text-xs font-bold text-stone-800 truncate">
-                        {empresa.razaoSocial}
+                  <div className="px-4 py-2.5 border-b border-stone-100 mb-1">
+                    <p className="text-xs font-bold text-stone-800 truncate">
+                      {empresa.razaoSocial}
+                    </p>
 
-                      </p>
-                      <p className="text-[11px] text-stone-400 mt-0.5">{empresa.cnpj}</p>
-                    </div>
-                    <button
-                      onClick={handleVerDados}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700
-                        hover:bg-stone-50 transition text-left"
-                    >
-                      <Building2 className="w-4 h-4 text-stone-400" strokeWidth={1.75} />
-                      Perfil
-                    </button>
-                    <hr className="border-stone-100 my-1" />
-                    <button
-                      onClick={handleSair}
-                      className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600
-                        hover:bg-red-50 transition text-left"
-                    >
-                      <LogOut className="w-4 h-4" strokeWidth={1.75} />
-                      Sair do Sistema
-                    </button>
+                    <p className="text-[11px] text-stone-400 mt-0.5">
+                      {empresa.cnpj}
+                    </p>
                   </div>
-                )}
-              </div>
-            </div>
+
+                  <button 
+                    onClick={handleVerDados}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-stone-700 hover:bg-stone-50 transition text-left"
+                  >
+                    <Building2 
+                      className="w-4 h-4 text-stone-400" 
+                      strokeWidth={1.75} 
+                    />
+
+                    Perfil
+                  </button>
+
+                  <hr className="border-stone-100 my-1" />
+
+                  <button 
+                    onClick={handleSair}
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition text-left"
+                  >
+                    <LogOut 
+                      className="w-4 h-4" 
+                      strokeWidth={1.75} 
+                    />
+
+                    Sair do Sistema
+                  </button>
+
+                </div>
+              )}
+
+            </div>  
+          </div>
+
           </nav>
         </div>
       </header>
-
       <main className="max-w-7xl mx-auto w-full px-6 lg:px-8 py-8 flex-1">
         <Outlet />
       </main>
@@ -323,42 +411,43 @@ JSON.stringify([
         </div>
       </footer>
 
-             {showAddressModal && (
-  <div
-    className="fixed inset-0 bg-black/40 flex items-center justify-center z-50"
-    onClick={() => setShowAddressModal(false)}
-  >
-    <div
-      className="bg-white rounded-2xl w-full max-w-xl p-8"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <h2 className="text-xl font-bold mb-2">
-        Solicitar alteração de endereço
-      </h2>
+      {showAddressModal && !isModalOpen && (
+        <div
+            className="fixed inset-0 z-[70] bg-black/40 flex items-center justify-center p-4"
+            onClick={() => setShowAddressModal(false)}
+          >
+          <div
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-xl p-8 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}>
 
-      <p className="text-sm text-stone-500 mb-6">
-        A alteração será enviada para análise da equipe comercial.
-      </p>
+            <h2 className="text-xl font-bold mb-2">
+              Solicitar alteração de endereço
+            </h2>
 
-      <div className="grid grid-cols-2 gap-4">
+            <p className="text-sm text-stone-500 mb-6">
+              A alteração será enviada para análise da equipe comercial.
+            </p>
 
-        <input
-  placeholder="CEP"
-  value={addressRequest.cep}
-  onChange={(e) => {
-    const cep = e.target.value;
+        <div className="grid grid-cols-2 gap-4">
 
-    setAddressRequest({
-      ...addressRequest,
-      cep,
-    });
+          <input
+            placeholder="CEP"
+            value={addressRequest.cep}
+            onChange={(e) => {
+              const cep = e.target.value;
 
-    if (cep.replace(/\D/g, "").length === 8) {
-      buscarCep(cep);
-    }
-  }}
-  className="border rounded-lg p-2"
-/>
+              setAddressRequest({
+                ...addressRequest,
+                cep,
+              });
+
+              if (cep.replace(/\D/g, "").length === 8) {
+                buscarCep(cep);
+              }
+            }}
+            className="border rounded-lg p-2"
+          />
+          
         <input
           placeholder="Cidade"
           value={addressRequest.cidade}
@@ -569,119 +658,342 @@ JSON.stringify([
 )}
 
       {/* Profile modal */}
-      {isModalOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 overflow-y-auto"
-          onClick={(e) => e.target === e.currentTarget && setIsModalOpen(false)}
-        >
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
-          
-            {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100">
-              <div className="flex items-center gap-2.5">
-                <Building2 className="w-5 h-5 text-primary" strokeWidth={1.75} />
-                <h2 className="text-base font-bold text-stone-900"> Perfil</h2>
-              </div>
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="text-stone-400 hover:text-stone-700 transition p-1 rounded-lg hover:bg-stone-100"
-                aria-label="Fechar"
-              >
-                <X className="w-4 h-4" strokeWidth={2} />
-              </button>
+{isModalOpen && (
+  <div
+    className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4"
+    onClick={(e) =>
+      e.target === e.currentTarget && setIsModalOpen(false)
+    }
+  >
+    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
+
+      {/* Modal header */}
+      <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100">
+        <div className="flex items-center gap-2.5">
+          <Building2
+            className="w-5 h-5 text-primary"
+            strokeWidth={1.75}
+          />
+
+          <h2 className="text-base font-bold text-stone-900">
+            Perfil
+          </h2>
+        </div>
+
+        <div className="flex items-center gap-2">
+
+          {/* Botão Editar */}
+          {!isEditing && (
+            <button
+              type="button"
+              onClick={() => setIsEditing((prev) => !prev)}
+              className={`
+                inline-flex items-center gap-2
+                px-4 py-2.5
+                rounded-xl
+                text-sm font-semibold
+                transition-all duration-200
+                shadow-sm
+                ${
+                  isEditing
+                    ? 'bg-stone-100 text-stone-700 border border-stone-300 hover:bg-stone-200'
+                    : 'bg-primary text-white border border-primary hover:bg-primary-hover hover:shadow-md'
+                }
+              `}
+            >
+              <Pencil className="w-4 h-4" strokeWidth={2.2} />
+
+              {isEditing ? 'Cancelar' : 'Editar dados'}
+            </button>
+          )}
+
+          {/* Botão Fechar */}
+          <button
+            onClick={() => {
+              setIsModalOpen(false);
+              setIsEditing(false);
+            }}
+            className="text-stone-400 hover:text-stone-700 transition
+                       p-1 rounded-lg hover:bg-stone-100"
+            aria-label="Fechar"
+          >
+            <X className="w-4 h-4" strokeWidth={2} />
+          </button>
+        </div>
+      </div>
+
+      {/* Modal body */}
+      <div className="px-6 py-5 space-y-5 overflow-y-auto max-h-[calc(90vh-76px)]">
+
+        {/* Nome do responsável */}
+        <div>
+          <label className="text-xs font-bold text-stone-500">
+            Nome do responsável
+          </label>
+
+          {isEditing ? (
+            <input
+              type="text"
+              name="nomeResponsavel"
+              value={empresa.nomeResponsavel}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-lg border border-stone-300
+                         bg-white px-3 py-2.5 font-semibold text-stone-800
+                         outline-none focus:border-primary focus:ring-2
+                         focus:ring-primary/20"
+            />
+          ) : (
+            <div className="mt-1 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2">
+              <p className="font-semibold text-stone-800">
+                {empresa.nomeResponsavel}
+              </p>
             </div>
+          )}
+        </div>
 
-            {/* Modal body */}
-<div className="px-6 py-5 space-y-5">
+        {/* Telefone */}
+        <div>
+          <label className="text-xs font-bold text-stone-500">
+            Telefone
+          </label>
 
-  <div>
-    <label className="text-xs font-bold text-stone-500">
-      Razão Social
-    </label>
+          {isEditing ? (
+            <input
+              type="text"
+              name="telefone"
+              value={empresa.telefone}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-lg border border-stone-300
+                         bg-white px-3 py-2.5 font-semibold text-stone-800
+                         outline-none focus:border-primary focus:ring-2
+                         focus:ring-primary/20"
+            />
+          ) : (
+            <div className="mt-1 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2">
+              <p className="font-semibold text-stone-800">
+                {empresa.telefone}
+              </p>
+            </div>
+          )}
+        </div>
 
-    <div className="mt-1 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2">
-  <p className="font-semibold text-stone-800">
-    {empresa.razaoSocial}
-  </p>
-</div>
-  </div>
+        {/* E-mail */}
+        <div>
+          <label className="text-xs font-bold text-stone-500">
+            E-mail
+          </label>
 
-  <div>
-    <label className="text-xs font-bold text-stone-500">
-      CNPJ
-    </label>
+          {isEditing ? (
+            <input
+              type="email"
+              name="email"
+              value={empresa.email}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-lg border border-stone-300
+                         bg-white px-3 py-2.5 font-semibold text-stone-800
+                         outline-none focus:border-primary focus:ring-2
+                         focus:ring-primary/20"
+            />
+          ) : (
+            <div className="mt-1 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2">
+              <p className="font-semibold text-stone-800">
+                {empresa.email}
+              </p>
+            </div>
+          )}
+        </div>
 
-    <div className="mt-1 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2">
-  <p className="font-semibold text-stone-800">
-    {empresa.cnpj}
-  </p>
-</div>
-  </div>
+        {/* Nome Fantasia */}
+        <div>
+          <label className="text-xs font-bold text-stone-500">
+            Nome Fantasia
+          </label>
 
- <div>
-  <label className="text-xs font-bold text-stone-500">
-    Endereço de entrega
-  </label>
+          {isEditing ? (
+            <input
+              type="text"
+              name="nomeFantasia"
+              value={empresa.nomeFantasia}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-lg border border-stone-300
+                         bg-white px-3 py-2.5 font-semibold text-stone-800
+                         outline-none focus:border-primary focus:ring-2
+                         focus:ring-primary/20"
+            />
+          ) : (
+            <div className="mt-1 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2">
+              <p className="font-semibold text-stone-800">
+                {empresa.nomeFantasia}
+              </p>
+            </div>
+          )}
+        </div>
 
-  <div className="mt-2 rounded-lg border bg-stone-50 p-3">
-    <p className="font-semibold">{empresa.endereco}</p>
-    <p className="text-sm text-stone-500">{empresa.cidade}</p>
-  </div>
+        {/* Razão Social */}
+        <div>
+          <label className="text-xs font-bold text-stone-500">
+            Razão Social
+          </label>
 
-  <button
-  onClick={() =>{
-   setIsModalOpen(false); 
-   setShowAddressModal(true)}}
-  className="mt-3 text-primary font-medium hover:underline"
->
-  Solicitar alteração de endereço
-</button>
-</div>
+          {isEditing ? (
+            <input
+              type="text"
+              name="razaoSocial"
+              value={empresa.razaoSocial}
+              onChange={handleChange}
+              className="mt-1 w-full rounded-lg border border-stone-300
+                         bg-white px-3 py-2.5 font-semibold text-stone-800
+                         outline-none focus:border-primary focus:ring-2
+                         focus:ring-primary/20"
+            />
+          ) : (
+            <div className="mt-1 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2">
+              <p className="font-semibold text-stone-800">
+                {empresa.razaoSocial || "Razão Social não disponível"}
+              </p>
+            </div>
+          )}
+        </div>
 
-<div className="bg-stone-100 rounded-xl p-4 mt-5 mb-6">
+        {/* CNPJ - somente visualização */}
+        <div>
+          <label className="text-xs font-bold text-stone-500">
+            CNPJ
+          </label>
 
-    <h3 className="text-sm font-semibold mb-2">
-        Endereço atual
-    </h3>
-
-    <p>{empresa.endereco}</p>
-
-    <p className="text-sm text-stone-500">
-        {empresa.cidade}
-    </p>
-
-</div>
-
-<div className="rounded-xl border border-yellow-300 bg-yellow-50 p-4 mb-6">
-
-    <p className="text-sm">
-
-        Após o envio, a solicitação será analisada pela equipe comercial.
-
-    </p>
-
-    <p className="text-sm mt-2">
-
-        O endereço atual continuará sendo utilizado até a aprovação.
-
-    </p>
-
-</div>
-  <div>
-    <label className="text-xs font-bold text-stone-500">
-      Limite de Credito
-    </label>
-    <p className="mt-1 font-semibold">
-  {empresa.limiteCredito}
-</p>
-  </div>
- 
-</div>
+          <div className="mt-1 w-full rounded-lg border border-stone-200 bg-stone-100 px-3 py-2">
+            <p className="font-semibold text-stone-800">
+              {empresa.cnpj}
+            </p>
           </div>
+
+          <p className="mt-1 text-[11px] text-stone-400">
+            O CNPJ não pode ser alterado pelo portal.
+          </p>
+        </div>
+
+        {/* Endereço */}
+        <div>
+          <label className="text-xs font-bold text-stone-500">
+            Endereço de entrega
+          </label>
+
+          <div className="mt-2 rounded-lg border bg-stone-50 p-3">
+            <p className="font-semibold">
+              {empresa.endereco}
+            </p>
+
+            <p className="text-sm text-stone-500">
+              {empresa.cidade}
+            </p>
           </div>
-          
-        
-      )}
+
+          <button
+            onClick={() => {
+              setIsModalOpen(false);
+              setShowAddressModal(true);
+            }}
+            className="
+              mt-4
+              w-full
+              flex
+              items-center
+              justify-center
+              gap-2
+              px-4
+              py-3
+              rounded-xl
+              bg-primary
+              text-white
+              font-semibold
+              text-sm
+              hover:bg-primary-hover
+              transition-all
+              duration-200
+              shadow-sm
+            "
+          >
+            <Pencil className="w-4 h-4" />
+            Solicitar alteração de endereço
+          </button>
+        </div>
+
+        {/* Informativo sobre endereço */}
+        <div className="bg-stone-100 rounded-xl p-4">
+          <h3 className="text-sm font-semibold mb-2">
+            Endereço atual
+          </h3>
+
+          <p>{empresa.endereco}</p>
+
+          <p className="text-sm text-stone-500">
+            {empresa.cidade}
+          </p>
+        </div>
+
+        <div className="rounded-xl border border-yellow-300 bg-yellow-50 p-4">
+          <p className="text-sm">
+            Após o envio, a solicitação será analisada pela equipe comercial.
+          </p>
+
+          <p className="text-sm mt-2">
+            O endereço atual continuará sendo utilizado até a aprovação.
+          </p>
+        </div>
+
+        {/* Limite de crédito */}
+        <div>
+          <label className="text-xs font-bold text-stone-500">
+            Limite de Crédito
+          </label>
+
+          <p className="mt-1 font-semibold">
+            {empresa.limiteCredito}
+          </p>
+        </div>
+
+        {/* Botões de edição */}
+        {isEditing && (
+          <div className="flex gap-3 pt-3 border-t border-stone-200">
+
+            <button
+              onClick={() => {
+                setEmpresa(mockEmpresa);
+                setIsEditing(false);
+              }}
+              className="flex-1 rounded-xl border border-stone-300
+                         px-4 py-3 text-sm font-semibold
+                         text-stone-700 hover:bg-stone-50 transition"
+            >
+              Cancelar
+            </button>
+
+            <button
+              onClick={() => {
+                localStorage.setItem(
+                  'caseira_empresa',
+                  JSON.stringify(empresa)
+                );
+
+                setIsEditing(false);
+
+                alert('Dados atualizados com sucesso!');
+              }}
+              className="flex-1 rounded-xl bg-primary px-4 py-3
+                         text-sm font-semibold text-white
+                         hover:bg-primary-hover transition"
+            >
+              Salvar alterações
+            </button>
+
+          </div>
+        )}
+
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 }

@@ -39,16 +39,56 @@ export default function LoginB2BPage() {
   }
   return (
     <div className="relative min-h-screen bg-stone-100 flex flex-col items-center justify-center">
-      <header className="fixed top-0 left-0 w-full h-16 bg-white shadow-sm z-50">
-        <div className="max-w-7xl mx-auto h-full flex items-center px-8">
-        <Link to="/" className="flex items-center gap-3">
-          <img
-           src={logo}
-            alt="A Caseira"
-            className="h-20 object-contain"
-         />
-         <span className="text-black font-bold text-lg">A Caseira</span>
-        </Link>
+      <header className="fixed top-0 left-0 w-full h-[72px] bg-white/95 backdrop-blur-md border-b border-stone-200/80 z-50">
+        <div className="max-w-7xl mx-auto h-full px-6 lg:px-8 flex items-center justify-between">
+
+          {/* Logo */}
+          <Link
+            to="/"
+            className="flex items-center gap-3 group"
+          >
+            <div className="h-11 w-11 rounded-xl overflow-hidden bg-stone-50 border border-stone-200 flex items-center justify-center">
+              <img
+                src={logo}
+                alt="A Caseira"
+                className="h-full w-full object-contain"
+              />
+            </div>
+
+            <div className="flex flex-col leading-tight">
+              <span className="text-lg font-bold text-stone-900">
+                A Caseira
+              </span>
+
+              <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
+                Portal B2B
+              </span>
+            </div>
+          </Link>
+
+          {/* Área direita */}
+          <div className="flex items-center gap-4">
+
+            <div className="hidden sm:flex items-center gap-2 text-xs text-stone-500">
+              <ShieldCheck className="w-4 h-4 text-primary" />
+              <span>Ambiente seguro</span>
+            </div>
+
+            <div className="hidden sm:block h-5 w-px bg-stone-200" />
+
+            <span className="hidden sm:block text-sm text-stone-500">
+              Ainda não é parceiro?
+            </span>
+
+            <Link
+              to="/seja-parceiro"
+              className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover transition-all shadow-sm"
+            >
+              Solicitar acesso
+            </Link>
+
+          </div>
+
         </div>
       </header>
       {/* Card */}

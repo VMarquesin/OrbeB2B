@@ -7,7 +7,7 @@ export default function HeroSection() {
   const { ref, isVisible } = useScrollAnimation();
 
   return (
-    <section id="inicio" className="bg-white py-20 lg:py-28">
+    <section id="inicio" className="bg-stone-50 py-24 lg:py-32">
       <div className="max-w-6xl mx-auto px-6 lg:px-8">
         <div
           ref={ref}
@@ -21,17 +21,17 @@ export default function HeroSection() {
               Tradição &amp; Qualidade
             </span>
 
-            <h1 className="text-4xl lg:text-6xl font-extrabold leading-tight text-gray-900">
+           <h1 className="text-5xl lg:text-[64px] font-extrabold leading-[1.05] tracking-[-0.03em] text-slate-950"> 
               A tradição que seu comércio merece.
             </h1>
 
-            <p className="text-base text-gray-500 leading-relaxed max-w-md">
+            <p className="text-lg text-slate-500 leading-8 max-w-xl">
               Elevamos o padrão dos doces caseiros no varejo. Nossas paçocas e
               especialidades são produzidas com ingredientes selecionados,
               garantindo giro rápido e clientes satisfeitos na sua loja.
             </p>
 
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-wrap items-center gap-3 pt-2">
               <Button variant="primary" href="#catalogo">
                 Conhecer Produtos <ArrowRight className="h-4 w-4" />
               </Button>

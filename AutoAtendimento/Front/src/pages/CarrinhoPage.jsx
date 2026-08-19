@@ -74,20 +74,26 @@ export default function CarrinhoPage() {
       <Link
         to="/portal"
         className="
-        inline-flex
-        items-center
-        gap-2
-        text-sm
-        text-stone-500
+          inline-flex
+          items-center
+          gap-2
+          px-5
+          py-3
+          bg-primary
+          text-white
+          rounded-xl
+          text-sm
+          font-semibold
+          hover:bg-primary-hover
+          transition-all
+          duration-200
+          shadow-md
         "
       >
-
-        <ArrowLeft className="w-4 h-4"/>
-
+        <ArrowLeft className="w-4 h-4" />
         Continuar comprando
-
       </Link>
-
+    
       <h1 className="
         text-2xl
         font-bold

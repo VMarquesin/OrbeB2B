@@ -88,11 +88,17 @@ export default function SejaParceiroPage() {
             </div>
 
             {/* Placeholder da imagem */}
-            <div className="h-[420px] rounded-2xl border-2 border-dashed border-stone-300 bg-white flex items-center justify-center">
+            <div className="relative">
 
-              <div className="text-center">
+              <div className="  absolute -inset-3 rounded-[2rem] bg-primary/10"/>
 
-                <Building2 className="w-20 h-20 text-stone-300 mx-auto" />
+               <div className="relative h-[420px] overflow-hidden rounded-[2rem] shadow-xl">
+
+                <img
+                  src="https://images.openai.com/static-rsc-4/fmcR6tyCe0KvL1EsWuxP4lIxbkG8n3oJFhdJjNKXcviCHRC-bJHal-CJT-cl4gN3n4GWiNiP9wq7CBVdEWqY3JkyH65-dwFO0QWCsLl1sL5tKexm4N89FZ-7S8OGHAoHV6DcSfjfvLtbQ6UK1Q7kFmfcEVzLW1t6PZezse0hFrxAoi6M5_gMqsJwzXhCZ0cD?purpose=fullsize"
+                  alt="Placeholder da imagem institucional"
+                  className="w-full h-full object-cover"
+                />
 
                 <p className="mt-4 text-stone-400">
                   Placeholder da imagem institucional

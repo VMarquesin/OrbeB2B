@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Lock,
   CheckCircle2,
+  X,
 } from 'lucide-react';
 
 const mockDelivery = {
@@ -55,23 +56,37 @@ export default function CheckoutB2BPage() {
 
     function handleAddressRequest() {
 
-      const request =  {
-        cliente: mockDelivery.company,
-        cnpj: mockDelivery.cnpj,
-        novoEndereco: { 
-           endereco: addressForm.address,
-           cidade: addressForm.city
-        },
-        status: 'Solicitação de alteração de endereço',
-        origem: 'Portal B2B',
-      };
+  if (!addressForm.address.trim() || !addressForm.city.trim()) {
+    alert('Preencha o endereço e a cidade.');
+    return;
+  }
 
-      console.log('Solicitação de alteração de endereço:', request);
+  const request = {
+    cliente: mockDelivery.company,
+    cnpj: mockDelivery.cnpj,
 
-      alert('Solicitação de alteração de endereço enviada com sucesso!');
+    enderecoAnterior: {
+      endereco: mockDelivery.address,
+      cidade: mockDelivery.city,
+    },
 
-      setIsAddressModalOpen(false);
-    }
+    novoEndereco: {
+      endereco: addressForm.address,
+      cidade: addressForm.city,
+    },
+
+    status: 'Alteração de endereço para pedido',
+    origem: 'Portal B2B',
+    data: new Date().toISOString(),
+  };
+
+  console.log(
+    'Alteração de endereço do pedido:',
+    request
+  );
+
+  setIsAddressModalOpen(false);
+}
 
     function handleFinalize(e) {
 
@@ -143,10 +158,25 @@ export default function CheckoutB2BPage() {
         {/* Back link */}
         <Link
           to="/portal"
-          className="inline-flex items-center gap-1.5 text-sm text-stone-500
-            hover:text-stone-900 transition mb-6"
+          className="
+            inline-flex
+            items-center
+            gap-2
+            px-4
+            py-2.5
+            mb-6
+            rounded-xl
+            bg-primary/10
+            text-primary
+            text-sm
+            font-semibold
+            hover:bg-primary
+            hover:text-white
+            transition-all
+            duration-200
+          "
         >
-          <ArrowLeft className="w-4 h-4" strokeWidth={1.75} />
+          <ArrowLeft className="w-4 h-4" strokeWidth={2} />
           Voltar para o Catálogo
         </Link>
 
@@ -161,33 +191,100 @@ export default function CheckoutB2BPage() {
           {/* ── Left column ── */}
           <div className="lg:col-span-2 space-y-5">
             {/* Delivery data */}
-            <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-stone-800 pb-4 border-b border-stone-100">
-                <Truck className="w-4 h-4 text-primary" strokeWidth={1.75} />
-                Dados de Entrega
-              </h2>
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-                <div>
-                  <p className="text-xs text-stone-400 mb-0.5">Empresa</p>
-                  <p className="font-semibold text-stone-800">
-                    {mockDelivery.company}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-stone-400 mb-0.5">CNPJ</p>
-                  <p className="font-semibold text-stone-800">
-                    {mockDelivery.cnpj}
-                  </p>
-                </div>
-                <div className="sm:col-span-2">
-                  <p className="text-xs text-stone-400 mb-0.5">
-                    Endereço Principal
-                  </p>
-                  <p className="text-stone-800">{mockDelivery.address}</p>
-                  <p className="text-stone-800">{mockDelivery.city}</p>
-                </div>
-              </div>
-            </section>
+           {/* Delivery data */}
+<section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
+
+  <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+
+    <h2 className="flex items-center gap-2 text-base font-semibold text-stone-800">
+      <Truck
+        className="w-4 h-4 text-primary"
+        strokeWidth={1.75}
+      />
+      Dados de Entrega
+    </h2>
+
+    <button
+      type="button"
+      onClick={() => setIsAddressModalOpen(true)}
+      className="
+        inline-flex
+        items-center
+        gap-2
+        px-3
+        py-2
+        rounded-lg
+        bg-primary/10
+        text-primary
+        text-xs
+        font-semibold
+        border
+        border-primary/20
+        hover:bg-primary
+        hover:text-white
+        transition-all
+      "
+    >
+      Alterar endereço
+    </button>
+
+  </div>
+
+  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+
+    <div>
+      <p className="text-xs text-stone-400 mb-0.5">
+        Empresa
+      </p>
+
+      <p className="font-semibold text-stone-800">
+        {mockDelivery.company}
+      </p>
+    </div>
+
+    <div>
+      <p className="text-xs text-stone-400 mb-0.5">
+        CNPJ
+      </p>
+
+      <p className="font-semibold text-stone-800">
+        {mockDelivery.cnpj}
+      </p>
+    </div>
+
+    <div className="sm:col-span-2">
+
+      <p className="text-xs text-stone-400 mb-1">
+        Endereço de entrega
+      </p>
+
+      <div className="bg-stone-50 border border-stone-200 rounded-xl p-4">
+
+        <p className="font-semibold text-stone-800">
+          {addressForm.address}
+        </p>
+
+        <p className="text-sm text-stone-500 mt-1">
+          {addressForm.city}
+        </p>
+
+      </div>
+
+    </div>
+
+  </div>
+
+  <div className="mt-4 flex items-start gap-2 text-xs text-stone-400">
+
+    <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+
+    <p>
+      O endereço informado será utilizado para a entrega deste pedido.
+    </p>
+
+  </div>
+
+</section>
 
             {/* Cart summary */}
             <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
@@ -343,6 +440,208 @@ export default function CheckoutB2BPage() {
             </section>
           </div>
         </form>
+
+        {/* Modal de alteração de endereço */}
+{isAddressModalOpen && (
+  <div
+    className="
+      fixed
+      inset-0
+      z-[70]
+      bg-black/40
+      flex
+      items-center
+      justify-center
+      p-4
+    "
+    onClick={(e) => {
+      if (e.target === e.currentTarget) {
+        setIsAddressModalOpen(false);
+      }
+    }}
+  >
+
+    <div
+      className="
+        bg-white
+        rounded-3xl
+        shadow-2xl
+        w-full
+        max-w-lg
+        max-h-[90vh]
+        overflow-y-auto
+      "
+    >
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100">
+
+        <div>
+          <h2 className="text-lg font-bold text-stone-900">
+            Alterar endereço de entrega
+          </h2>
+
+          <p className="text-xs text-stone-400 mt-1">
+            Informe o endereço que deseja utilizar neste pedido.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setIsAddressModalOpen(false)}
+          className="
+            p-2
+            rounded-lg
+            text-stone-400
+            hover:text-stone-700
+            hover:bg-stone-100
+            transition
+          "
+        >
+          <X className="w-5 h-5" />
+        </button>
+
+      </div>
+
+      {/* Conteúdo */}
+      <div className="p-6 space-y-5">
+
+        {/* Endereço */}
+        <div>
+
+          <label className="block text-xs font-bold text-stone-500 mb-1.5">
+            Endereço
+          </label>
+
+          <input
+            type="text"
+            name="address"
+            value={addressForm.address}
+            onChange={handleAddressChange}
+            placeholder="Rua, avenida, número..."
+            className="
+              w-full
+              px-3
+              py-2.5
+              rounded-lg
+              border
+              border-stone-200
+              bg-white
+              text-sm
+              text-stone-800
+              outline-none
+              focus:border-primary
+              focus:ring-2
+              focus:ring-primary/10
+            "
+          />
+
+        </div>
+
+        {/* Cidade */}
+        <div>
+
+          <label className="block text-xs font-bold text-stone-500 mb-1.5">
+            Cidade / Estado / CEP
+          </label>
+
+          <input
+            type="text"
+            name="city"
+            value={addressForm.city}
+            onChange={handleAddressChange}
+            placeholder="São Paulo, SP - 01000-000"
+            className="
+              w-full
+              px-3
+              py-2.5
+              rounded-lg
+              border
+              border-stone-200
+              bg-white
+              text-sm
+              text-stone-800
+              outline-none
+              focus:border-primary
+              focus:ring-2
+              focus:ring-primary/10
+            "
+          />
+
+        </div>
+
+        {/* Aviso */}
+        <div className="rounded-xl border border-yellow-300 bg-yellow-50 p-4">
+
+          <div className="flex gap-3">
+
+            <ShieldCheck className="w-5 h-5 text-yellow-700 shrink-0" />
+
+            <div>
+
+              <p className="text-sm font-semibold text-stone-800">
+                Atenção
+              </p>
+
+              <p className="text-xs text-stone-600 mt-1">
+                A alteração será registrada para este pedido.
+                O endereço cadastrado da empresa não será alterado.
+              </p>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* Footer */}
+      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-stone-100">
+
+        <button
+          type="button"
+          onClick={() => setIsAddressModalOpen(false)}
+          className="
+            px-4
+            py-2.5
+            rounded-lg
+            border
+            border-stone-200
+            text-sm
+            font-semibold
+            text-stone-600
+            hover:bg-stone-50
+            transition
+          "
+        >
+          Cancelar
+        </button>
+
+        <button
+          type="button"
+          onClick={handleAddressRequest}
+          className="
+            px-5
+            py-2.5
+            rounded-lg
+            bg-primary
+            text-white
+            text-sm
+            font-semibold
+            hover:bg-primary-hover
+            transition
+          "
+        >
+          Confirmar endereço
+        </button>
+
+      </div>
+
+    </div>
+
+  </div>
+)}
         
 
       </div>  
