@@ -1,35 +1,31 @@
-import { useState } from 'react';
-import { Link,useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, CheckCircle2, Truck, FileText, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
-import { pedidosMock } from '../data/pedidosMock';
-import { useCart } from '../contexts/CartContext';
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Search, CheckCircle2, Truck, FileText, ChevronLeft, ChevronRight, ArrowUpDown, Loader2, AlertCircle } from 'lucide-react';
+import { obterMeusPedidos } from '../services/pedidosService';
+
+// Mapeamento dos enum values do back-end para labels legíveis
+const STATUS_LOGISTICA_LABEL = {
+  0: 'Aguardando Validação',
+  1: 'Faturado',
+  2: 'Em Separação',
+  3: 'Enviado',
+  4: 'Entregue',
+  5: 'Cancelado',
+};
 
 const STATUS_CONFIG = {
-  Entregue: {
-    icon: CheckCircle2,
-    className: 'bg-stone-50 text-stone-600 border border-stone-300',
-  },
-  'Em Separação': {
-    icon: Truck,
-    className: 'bg-orange-50 text-orange-600 border border-orange-200',
-  },
-  Faturado: {
-    icon: FileText,
-    className: 'bg-sky-50 text-sky-600 border border-sky-200',
-  },
+  'Entregue': { icon: CheckCircle2, className: 'bg-stone-50 text-stone-600 border border-stone-300' },
+  'Em Separação': { icon: Truck, className: 'bg-orange-50 text-orange-600 border border-orange-200' },
+  'Faturado': { icon: FileText, className: 'bg-sky-50 text-sky-600 border border-sky-200' },
+  'Enviado': { icon: Truck, className: 'bg-blue-50 text-blue-600 border border-blue-200' },
+  'Cancelado': { icon: FileText, className: 'bg-red-50 text-red-500 border border-red-200' },
 };
 
 function StatusBadge({ status }) {
-  const config = STATUS_CONFIG[status] ?? {
-    icon: FileText,
-    className: 'bg-stone-50 text-stone-500 border border-stone-200',
-  };
+  const config = STATUS_CONFIG[status] ?? { icon: FileText, className: 'bg-stone-50 text-stone-500 border border-stone-200' };
   const Icon = config.icon;
-
   return (
-    <span
-      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${config.className}`}
-    >
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${config.className}`}>
       <Icon className="w-3.5 h-3.5" strokeWidth={2} />
       {status}
     </span>
@@ -39,38 +35,51 @@ function StatusBadge({ status }) {
 const PAGE_SIZE = 10;
 
 export default function MeusPedidosPage() {
-  const [query, setQuery] = useState('');
-  const [page, setPage] = useState(1);
+  const [pedidos, setPedidos]       = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [erro, setErro]             = useState(null);
+  const [query, setQuery]           = useState('');
+  const [page, setPage]             = useState(1);
   const [statusFilter, setStatusFilter] = useState('Todos');
-  const [order, setOrder] = useState('desc');
-  const { addItem } = useCart();
-  const navigate = useNavigate();
+  const [order, setOrder]           = useState('desc');
 
-  const pedidos = JSON.parse(localStorage.getItem('caseira_orders') || '[]');
-  //const filtered = pedidos
-  const filtered = pedidosMock
-  .filter((p) => {
-    const search = query.replace('#', '').trim().toLowerCase();
-
-    const matchesSearch =
-      p.id.includes(search) ||
-      p.status.toLowerCase().includes(search);
-
-    const matchesStatus =
-      statusFilter === 'Todos' ||
-      p.status === statusFilter;
-
-    return matchesSearch && matchesStatus;
-  })
-  .sort((a, b) => {
-
-    if(order === 'asc'){
-      return a.id.localeCompare(b.id);
+  useEffect(() => {
+    let cancelado = false;
+    async function carregar() {
+      setLoading(true);
+      setErro(null);
+      try {
+        const data = await obterMeusPedidos();
+        if (!cancelado) {
+          // Normaliza os dados da API para o shape da UI
+          const normalizados = data.map((p) => ({
+            id:     p.id,
+            codigo: p.codigoPedidoFormatado,
+            data:   new Date(p.dataCriacao).toLocaleDateString('pt-BR'),
+            valor:  `R$ ${Number(p.valorTotalPedido).toFixed(2)}`,
+            status: STATUS_LOGISTICA_LABEL[p.statusLogistica] ?? String(p.statusLogistica),
+          }));
+          setPedidos(normalizados);
+        }
+      } catch (err) {
+        if (!cancelado) setErro(err.mensagemNormalizada ?? 'Não foi possível carregar os pedidos.');
+      } finally {
+        if (!cancelado) setLoading(false);
+      }
     }
+    carregar();
+    return () => { cancelado = true; };
+  }, []);
 
-    return b.id.localeCompare(a.id);
+  const filtered = pedidos
+    .filter((p) => {
+      const search = query.replace('#', '').trim().toLowerCase();
+      const matchesSearch = p.codigo.toLowerCase().includes(search) || p.status.toLowerCase().includes(search);
+      const matchesStatus = statusFilter === 'Todos' || p.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => order === 'asc' ? a.codigo.localeCompare(b.codigo) : b.codigo.localeCompare(a.codigo));
 
-  });
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -80,36 +89,27 @@ export default function MeusPedidosPage() {
     setPage(1);
   }
 
-  function repetirPedido(pedido) {
-  if (!pedido.itens || pedido.itens.length === 0) {
-    alert('Não foi possível repetir este pedido porque ele não possui itens.');
-    return;
-  }
-
-  pedido.itens.forEach((item) => {
-    addItem({
-      id: item.id,
-      guid: item.guid,
-      name: item.name,
-      image: item.image,
-      qty: item.quantidade ?? item.qty ?? 1,
-      price: item.price,
-      packaging: item.packaging
-        ? {
-            id: item.packaging.id,
-            name: item.packaging.name,
-            units: item.packaging.units,
-            price: item.packaging.price,
-          }
-        : undefined,
-    });
-  });
-
-  navigate('/portal/carrinho');
-}
-
   return (
     <div className="space-y-6">
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-24 gap-3 text-stone-400">
+          <Loader2 className="w-6 h-6 animate-spin text-primary" />
+          <span className="text-sm">Carregando pedidos...</span>
+        </div>
+      )}
+
+      {/* Erro */}
+      {!loading && erro && (
+        <div className="flex flex-col items-center justify-center py-24 gap-3 text-red-500">
+          <AlertCircle className="w-8 h-8" />
+          <p className="text-sm font-medium">{erro}</p>
+          <button onClick={() => window.location.reload()} className="text-xs text-primary underline">Tentar novamente</button>
+        </div>
+      )}
+
+      {!loading && !erro && (
+      <>
       {/* Page header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -219,7 +219,7 @@ export default function MeusPedidosPage() {
               }`}
             >
               <span className="text-sm font-semibold text-stone-800">
-                #{pedido.id}
+                #{pedido.codigo}
               </span>
               <span className="text-sm text-stone-600">{pedido.data}</span>
               <span className="text-sm font-semibold text-stone-900">
@@ -234,13 +234,6 @@ export default function MeusPedidosPage() {
               >
                 Ver Detalhes
               </Link>
-
-              <button
-                onClick={() => repetirPedido(pedido)}
-                className="text-xs font-semibold px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition"
-              >
-                Repetir
-              </button>
             </div>
           ))
         )}
@@ -270,6 +263,8 @@ export default function MeusPedidosPage() {
           <ChevronRight className="w-4 h-4" strokeWidth={2} />
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 }

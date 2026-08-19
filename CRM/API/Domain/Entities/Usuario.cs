@@ -42,4 +42,9 @@ public class Usuario
     {
         Nome = nome;
     }
+
+    public void VincularCliente(Guid clienteId)
+    {
+        ClienteId = clienteId;
+    }
 }

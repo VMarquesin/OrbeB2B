@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Store, Building2, Lock, LogIn, ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { Building2, Lock, LogIn, ShieldCheck, Eye, EyeOff } from 'lucide-react';
 import logo from '../assets/logo.jpg';
-
-const MOCK_USER = {
-  cnpj: '99.999.999/9999-99',
-  password: 'caseira',
-};
+import { login } from '../services/authService';
 
 export default function LoginB2BPage() {
   const [cnpj, setCnpj] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   function formatCnpj(value) {
@@ -28,13 +25,18 @@ export default function LoginB2BPage() {
     setCnpj(formatCnpj(e.target.value));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    if (cnpj === MOCK_USER.cnpj && password === MOCK_USER.password) {
-      setError('');
+    setError('');
+    setLoading(true);
+
+    try {
+      await login(cnpj, password);
       navigate('/portal');
-    } else {
-      setError('CNPJ ou senha inválidos. Verifique suas credenciais.');
+    } catch (err) {
+      setError(err.mensagemNormalizada ?? 'Erro ao realizar login. Tente novamente.');
+    } finally {
+      setLoading(false);
     }
   }
   return (
@@ -182,13 +184,15 @@ export default function LoginB2BPage() {
             {/* Submit button */}
             <button
               type="submit"
+              disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-3 mt-2
                 bg-primary hover:bg-primary-hover active:scale-[0.98]
                 text-white font-semibold rounded-lg shadow-md shadow-primary/30
-                transition-all duration-150"
+                transition-all duration-150
+                disabled:opacity-60 disabled:cursor-not-allowed"
             >
-              Entrar
-              <LogIn className="w-4 h-4" strokeWidth={2} />
+              {loading ? 'Entrando...' : 'Entrar'}
+              {!loading && <LogIn className="w-4 h-4" strokeWidth={2} />}
             </button>
           </form>
 
@@ -207,15 +211,15 @@ export default function LoginB2BPage() {
 
       {/* Test credentials */}
       <div className="mt-4 w-full max-w-sm bg-primary/5 border border-primary/20 rounded-xl px-5 py-3.5">
-        <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Credenciais de teste</p>
+        <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Credenciais de teste (Seed)</p>
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
             <span className="text-stone-500 font-medium">CNPJ</span>
-            <span className="font-mono text-stone-700">99.999.999/9999-99</span>
+            <span className="font-mono text-stone-700">use o CNPJ do 1º cliente aprovado</span>
           </div>
           <div className="flex items-center justify-between text-xs">
             <span className="text-stone-500 font-medium">Senha</span>
-            <span className="font-mono text-stone-700">caseira</span>
+            <span className="font-mono text-stone-700">Admin123!</span>
           </div>
         </div>
       </div>

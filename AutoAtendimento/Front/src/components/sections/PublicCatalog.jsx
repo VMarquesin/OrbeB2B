@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Search, SlidersHorizontal } from 'lucide-react';
 
-import { fetchProducts } from '../../services/apiMock';
-import ProductCard from '../ui/ProductCard';
+import { obterProdutosPublicos } from '../../services/vitrineService';
 import useScrollAnimation from '../../hooks/useScrollAnimation';
 import logo from '../../assets/logo.jpg';
 
@@ -27,50 +26,41 @@ function ProductCardSkeleton() {
 }
 
 export default function PublicCatalog() {
-  const [products, setProducts] = useState([]);
+  const [products, setProducts]   = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Pesquisa
-  const [search, setSearch] = useState('');
-
-  // Categoria selecionada
-  const [category, setCategory] = useState('Todos');
-
+  const [erro, setErro]           = useState(null);
+  const [search, setSearch]       = useState('');
+  const [category, setCategory]   = useState('Todos');
   const { ref, isVisible } = useScrollAnimation();
 
   useEffect(() => {
-    fetchProducts().then((data) => {
-      console.log(data);
-
-      setProducts(data);
-      setIsLoading(false);
-    });
+    let cancelado = false;
+    async function carregar() {
+      setIsLoading(true);
+      setErro(null);
+      try {
+        const data = await obterProdutosPublicos();
+        if (!cancelado) setProducts(data);
+      } catch (err) {
+        if (!cancelado) setErro(err.mensagemNormalizada ?? 'Erro ao carregar catálogo.');
+      } finally {
+        if (!cancelado) setIsLoading(false);
+      }
+    }
+    carregar();
+    return () => { cancelado = true; };
   }, []);
 
-  // Cria as categorias automaticamente
-  const categories = [
-    'Todos',
-    ...new Set(
-      products
-        .map((product) => product.category)
-        .filter(Boolean)
-    ),
-  ];
+  // Categorias derivadas do campo embalagem
+  const categories = ['Todos', ...new Set(products.map((p) => p.embalagem).filter(Boolean))];
 
-  // Filtro dos produtos
-  const filteredProducts = products.filter((product) => {
-    const name = product.name?.toLowerCase() || '';
-    const type = product.category?.toLowerCase() || '';
+  const filteredProducts = products.filter((p) => {
     const searchText = search.toLowerCase();
-
     const matchesSearch =
-      name.includes(searchText) ||
-      type.includes(searchText);
-
-    const matchesCategory =
-      category === 'Todos' ||
-      product.category === category;
-
+      p.descricao?.toLowerCase().includes(searchText) ||
+      p.embalagem?.toLowerCase().includes(searchText) ||
+      p.codigoComercial?.toLowerCase().includes(searchText);
+    const matchesCategory = category === 'Todos' || p.embalagem === category;
     return matchesSearch && matchesCategory;
   });
 
@@ -145,17 +135,37 @@ export default function PublicCatalog() {
             Array.from({ length: 8 }).map((_, i) => (
               <ProductCardSkeleton key={i} />
             ))
+          ) : erro ? (
+            <div className="col-span-full py-20 text-center text-red-400">
+              {erro}
+            </div>
           ) : filteredProducts.length === 0 ? (
             <div className="col-span-full py-20 text-center text-gray-400">
               Nenhum produto encontrado.
             </div>
           ) : (
-            filteredProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                {...product}
-                linkTo={`/catalogo/${product.id}`}
-              />
+            filteredProducts.map((produto) => (
+              <Link
+                key={produto.id}
+                to={`/catalogo/${produto.id}`}
+                className="flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
+              >
+                <img
+                  src={`https://placehold.co/400x280/C2856A/FFF?text=${encodeURIComponent((produto.descricao ?? '').slice(0, 14))}`}
+                  alt={produto.descricao}
+                  className="w-full h-48 object-cover hover:scale-105 transition-transform duration-300"
+                />
+                <div className="flex flex-col flex-1 gap-2 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-primary">
+                    {produto.embalagem}
+                  </p>
+                  <h3 className="text-sm font-semibold text-gray-900 leading-snug">{produto.descricao}</h3>
+                  <p className="text-xs text-gray-400">Cód. {produto.codigoComercial}</p>
+                  <span className="mt-auto flex w-full items-center justify-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover transition">
+                    Saiba Mais
+                  </span>
+                </div>
+              </Link>
             ))
           )}
         </div>
