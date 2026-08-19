@@ -1,5 +1,6 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { RotateCcw, ArrowRight, ShoppingCart } from 'lucide-react';
+import { RotateCcw, ArrowRight, ShoppingCart, CheckCircle2, X } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 
 const mockUser = {
@@ -86,6 +87,9 @@ export default function DashboardLojistaPage() {
 
    const { addItem } = useCart();
 
+   const [showCartMessage, setShowCartMessage] = useState(false);
+   const [cartMessage, setCartMessage] = useState('');
+
   function handleAdicionar(produto) {
     addItem({
       id: produto.id,
@@ -96,10 +100,42 @@ export default function DashboardLojistaPage() {
       price: produto.packaging[0].price,
       packaging: produto.packaging[0]
     });
+
+  setCartMessage(`${produto.name} foi adicionado ao carrinho!`);
+  setShowCartMessage(true);
+
+  setTimeout(() => {
+  setShowCartMessage(false);
+  }, 2500);
   }
 
   return (
     <div className="space-y-10">
+      {showCartMessage && (
+      <div className="fixed top-20 right-6 z-[9999] flex items-center gap-4 bg-white border-2 border-green-300 rounded-xl px-5 py-4 shadow-2xl min-w-[360px] animate-in slide-in-from-right-5 duration-300">
+        
+        <div className="flex items-center justify-center w-11 h-11 rounded-full bg-green-100">
+          <CheckCircle2 className="w-6 h-6 text-green-600" />
+        </div>
+
+        <div className="flex-1">
+          <p className="text-base font-bold text-stone-800">
+            Produto adicionado!
+          </p>
+
+          <p className="text-sm text-stone-600 mt-1">
+            {cartMessage}
+          </p>
+        </div>
+
+        <button
+          onClick={() => setShowCartMessage(false)}
+          className="text-stone-400 hover:text-stone-700 transition p-1"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+    )}
       {/* Welcome */}
       <div>
         <h1 className="text-2xl font-bold text-stone-900">

@@ -252,15 +252,6 @@ export default function ProductDetails({b2b = false}) {
           </div>
           )}
 
-            <div className="flex gap-3 items-center">
-
-          <button
-          className="border rounded-lg px-3"
-          onClick={()=>setQuantity(q=>Math.max(1,q-1))}
-          >
-          -
-          </button>
-
           {b2b && (
             <div className="flex gap-3 items-center">
 
@@ -323,7 +314,6 @@ export default function ProductDetails({b2b = false}) {
           )}
                     </div>
                     </div>
-                  </div>
                   </section>
             );
           }

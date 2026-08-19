@@ -27,7 +27,6 @@ import { createContext, useContext, useState, useEffect } from 'react';
     setCartItems(items);
   }
 
-
   // Adiciona um produto
   function addItem(item) {
 
