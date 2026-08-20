@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link,useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, CheckCircle2, Truck, FileText, ChevronLeft, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { pedidosMock } from '../data/pedidosMock';
+import { useCart } from '../contexts/CartContext';
 
 const STATUS_CONFIG = {
   Entregue: {
@@ -42,6 +43,8 @@ export default function MeusPedidosPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('Todos');
   const [order, setOrder] = useState('desc');
+  const { addItem } = useCart();
+  const navigate = useNavigate();
 
   const pedidos = JSON.parse(localStorage.getItem('caseira_orders') || '[]');
   //const filtered = pedidos
@@ -76,6 +79,34 @@ export default function MeusPedidosPage() {
     setQuery(e.target.value);
     setPage(1);
   }
+
+  function repetirPedido(pedido) {
+  if (!pedido.itens || pedido.itens.length === 0) {
+    alert('Não foi possível repetir este pedido porque ele não possui itens.');
+    return;
+  }
+
+  pedido.itens.forEach((item) => {
+    addItem({
+      id: item.id,
+      guid: item.guid,
+      name: item.name,
+      image: item.image,
+      qty: item.quantidade ?? item.qty ?? 1,
+      price: item.price,
+      packaging: item.packaging
+        ? {
+            id: item.packaging.id,
+            name: item.packaging.name,
+            units: item.packaging.units,
+            price: item.packaging.price,
+          }
+        : undefined,
+    });
+  });
+
+  navigate('/portal/carrinho');
+}
 
   return (
     <div className="space-y-6">
