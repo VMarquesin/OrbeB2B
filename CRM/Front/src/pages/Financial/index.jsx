@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Search, Filter, DollarSign, Download, Printer, TrendingUp, 
   Calendar, FileText, CheckCircle2, X, Eye, Calculator
 } from 'lucide-react';
-import { mockOrders } from '../../services/mockData';
+import api from '../../services/api';
 import { formatCurrency } from '../../utils/formatCurrency';
 
 export default function Faturamento() {
@@ -11,14 +11,54 @@ export default function Faturamento() {
   const [filtroMes, setFiltroMes] = useState('todos');
   const [orcamentoSelecionado, setOrcamentoSelecionado] = useState(null);
 
-  // Filtra apenas os orçamentos que JÁ FORAM VALIDADOS (saíram da fila de pendentes)
-  const orcamentosValidados = useMemo(() => {
-    return mockOrders.filter(pedido => pedido.status !== 'aguardando_validacao' && pedido.status !== 'pendente');
+  const [metricas, setMetricas] = useState({ receitaTotal: 0, volumePedidos: 0, ticketMedio: 0 });
+  const [historico, setHistorico] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const fetchFaturamento = async () => {
+    setIsLoading(true);
+    try {
+      // O Npgsql/Dapper quebra com erro 500 se não enviarmos as datas devido ao `IS NULL` na query do C#.
+      // Enviamos um range padrão gigantesco (ex: de 2000 a 2100) para trazer "todos", assim as variáveis nunca são nulas no SQL.
+      const res = await api.get('/api/inteligencia/faturamento?dataInicio=2000-01-01&dataFim=2100-12-31'); 
+      if (res.data) {
+        setMetricas({
+          receitaTotal: res.data.ReceitaPeriodo || res.data.receitaPeriodo || 0,
+          volumePedidos: res.data.VolumeOrcamentos || res.data.volumeOrcamentos || 0,
+          ticketMedio: res.data.TicketMedio || res.data.ticketMedio || 0
+        });
+        
+        const listaPedidosRaw = Array.isArray(res.data.HistoricoPedidos || res.data.historicoPedidos) 
+          ? (res.data.HistoricoPedidos || res.data.historicoPedidos) 
+          : [];
+
+        // Mapear propriedades para ficarem compatíveis com o formato que a tabela já espera renderizar
+        const listaMapeada = listaPedidosRaw.map(p => ({
+          id: p.Codigo || p.codigo || Math.random().toString(), // Chave única
+          data_criacao: p.Data || p.data,
+          codigo_pedido_formatado: p.Codigo || p.codigo,
+          clienteNome: p.ClienteNome || p.clienteNome,
+          valor_total_pedido: p.ValorFechado || p.valorFechado,
+          statusErp: p.StatusErp || p.statusErp,
+          status: 'concluido' // Todos aqui já foram validados e faturados
+        }));
+
+        setHistorico(listaMapeada);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar faturamento:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFaturamento();
   }, []);
 
-  // Lógica de Filtros (Cliente e Mês) - BLINDADA CONTRA TELA BRANCA
+  // Lógica de Filtros (Cliente e Mês) client-side sobre os dados retornados
   const orcamentosFiltrados = useMemo(() => {
-    return orcamentosValidados.filter(orcamento => {
+    return historico.filter(orcamento => {
       const termo = (buscaCliente || '').toLowerCase();
       const cliente = (orcamento.clienteNome || '').toLowerCase();
       const codigo = (orcamento.codigo_pedido_formatado || '').toLowerCase();
@@ -31,32 +71,19 @@ export default function Faturamento() {
 
       return bateCliente && bateMes;
     });
-  }, [buscaCliente, filtroMes, orcamentosValidados]);
+  }, [buscaCliente, filtroMes, historico]);
 
-  // Cálculo de KPIs Matemáticos e Financeiros
-  const metricas = useMemo(() => {
-    let receitaTotal = 0;
-    
-    orcamentosFiltrados.forEach(orc => receitaTotal += (orc.valor_total_pedido || 0));
-    
-    const volumePedidos = orcamentosFiltrados.length;
-    // Cálculo do Ticket Médio (Razão entre Faturamento e Volume)
-    const ticketMedio = volumePedidos > 0 ? receitaTotal / volumePedidos : 0;
-
-    return { receitaTotal, volumePedidos, ticketMedio };
-  }, [orcamentosFiltrados]);
-
-  // Gera as opções de meses dinamicamente baseado nos dados existentes
+  // Gera as opções de meses dinamicamente baseado nos dados recebidos
   const mesesDisponiveis = useMemo(() => {
     const meses = new Set();
-    orcamentosValidados.forEach(orc => {
+    historico.forEach(orc => {
       if (orc.data_criacao) {
         meses.add(new Date(orc.data_criacao).getMonth());
       }
     });
     const nomesMeses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     return Array.from(meses).sort((a, b) => b - a).map(num => ({ valor: num.toString(), label: nomesMeses[num] }));
-  }, [orcamentosValidados]);
+  }, [historico]);
 
   return (
     <div className="p-8 space-y-6 bg-slate-50/50 dark:bg-slate-950/50 min-h-screen">

@@ -10,11 +10,11 @@ export default function Login() {
   
   const { login } = useAuth();
 
-  const handleSubmeter = (e) => {
+  const handleSubmeter = async (e) => {
     e.preventDefault();
     setErro('');
     
-    const sucesso = login(email, password);
+    const sucesso = await login(email, password);
     
     if (!sucesso) {
       setErro('E-mail ou senha incorretos. Tente novamente.');

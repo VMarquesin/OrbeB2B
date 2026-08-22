@@ -36,17 +36,17 @@ export default function Sidebar() {
   const filteredMenu = menuItems.filter(item => item.roles.includes(user?.role || 'Administrador'));
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col transition-colors border-r border-slate-800">
+    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen transition-colors border-r border-slate-800 shrink-0">
       
       {/* Logo */}
-      <div className="p-6">
+      <div className="p-6 shrink-0">
         <h2 className="text-xl font-bold text-white tracking-wider">
           EMPRESA <span className="text-amber-500">A CASEIRA</span>
         </h2>
       </div>
 
       {/* Navegação Dinâmica */}
-      <nav className="flex-1 px-4 space-y-2">
+      <nav className="flex-1 px-4 space-y-2 overflow-y-auto">
         {filteredMenu.map((item) => {
           const Icon = item.icon;
           return (
@@ -69,7 +69,7 @@ export default function Sidebar() {
       </nav>
 
       {/* Rodapé: Configurações, Perfil e Logout */}
-      <div className="p-4 border-t border-slate-800 space-y-2">
+      <div className="p-4 border-t border-slate-800 space-y-2 shrink-0">
         
         {user?.role === 'Administrador' && (
           <NavLink
@@ -97,13 +97,13 @@ export default function Sidebar() {
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-amber-500 text-slate-900 font-black flex items-center justify-center text-sm border border-amber-400 shrink-0">
-              {getIniciais(user?.name || 'Marcio Admin')}
+              {getIniciais(user?.nome || user?.name || 'Usuário')}
             </div>
           )}
           
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-bold text-white truncate">{user?.name || 'Marcio Admin'}</p>
-            <p className="text-xs text-slate-400 truncate">{user?.role || 'Administrador'}</p>
+            <p className="text-sm font-bold text-white truncate">{user?.nome || user?.name || 'Usuário'}</p>
+            <p className="text-xs text-slate-400 truncate">{user?.perfil || user?.role || 'Administrador'}</p>
           </div>
         </div>
 

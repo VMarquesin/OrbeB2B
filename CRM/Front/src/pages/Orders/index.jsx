@@ -4,7 +4,8 @@ import {
   ShoppingCart, ArrowUpDown, Plus, Factory, Store,
   Trash2, AlertCircle, RefreshCw
 } from 'lucide-react';
-import { mockOrders, mockClients, mockProducts } from '../../services/mockData';
+import api from '../../services/api';
+import { mockOrders } from '../../services/mockData';
 
 export default function GestaoOrcamentaria() {
   const [pedidos, setPedidos] = useState(mockOrders);
@@ -31,6 +32,48 @@ export default function GestaoOrcamentaria() {
   const [qtdProduto, setQtdProduto] = useState(1);
   const [precoEditavel, setPrecoEditavel] = useState(''); 
   const [itensManuais, setItensManuais] = useState([]);
+
+  // =========================================================================
+  // OPÇÕES DO MODAL (CARREGADAS DA API)
+  // =========================================================================
+  const [clientesOptions, setClientesOptions] = useState([]);
+  const [produtosOptions, setProdutosOptions] = useState([]);
+
+  useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const [resCli, resProd] = await Promise.all([
+          api.get('/api/clientes').catch(() => ({ data: [] })),
+          api.get('/api/produtos').catch(() => ({ data: [] }))
+        ]);
+        
+        const cliMapped = (resCli.data || []).map(c => ({
+          ...c,
+          id: c.id || c.Id,
+          nome_ou_razao_social: c.nome_ou_razao_social || c.NomeOuRazaoSocial || c.nomeOuRazaoSocial || '',
+          nome_fantasia: c.nome_fantasia || c.NomeFantasia || c.nomeFantasia || '',
+          documento: c.documento || c.Documento || ''
+        }));
+
+        const prodMapped = (resProd.data || []).map(p => ({
+          ...p,
+          id: p.id || p.Id,
+          descricao: p.descricao || p.Descricao || '',
+          codigo_comercial: p.codigo_comercial || p.CodigoComercial || p.codigoComercial || '',
+          eh_fabricacao_propria: p.eh_fabricacao_propria ?? p.EhFabricacaoPropria ?? true,
+          preco_atacado: p.preco_atacado ?? p.PrecoAtacado ?? 0,
+          preco_lojista: p.preco_lojista ?? p.PrecoLojista ?? 0,
+          preco_varejo: p.preco_varejo ?? p.PrecoVarejo ?? 0
+        }));
+
+        setClientesOptions(cliMapped);
+        setProdutosOptions(prodMapped);
+      } catch (e) {
+        console.error("Erro ao carregar opções do modal manual:", e);
+      }
+    };
+    fetchOptions();
+  }, []);
 
   // =========================================================================
   // RECUPERAÇÃO DO CÁLCULO DE FÁBRICA (PCP)
@@ -132,22 +175,22 @@ export default function GestaoOrcamentaria() {
   const clientesFiltrados = useMemo(() => {
     if (!buscaCliente) return [];
     const termo = (buscaCliente || '').toLowerCase();
-    return mockClients.filter(c => {
+    return clientesOptions.filter(c => {
       const nomeOuRazao = (c.nome_ou_razao_social || '').toLowerCase();
       const fantasia = (c.nome_fantasia || '').toLowerCase();
       return nomeOuRazao.includes(termo) || fantasia.includes(termo);
     });
-  }, [buscaCliente]);
+  }, [buscaCliente, clientesOptions]);
 
   const produtosFiltrados = useMemo(() => {
     if (!buscaProduto) return [];
     const termo = (buscaProduto || '').toLowerCase();
-    return mockProducts.filter(p => {
+    return produtosOptions.filter(p => {
       const desc = (p.descricao || '').toLowerCase();
       const cod = (p.codigo_comercial || '').toLowerCase();
       return desc.includes(termo) || cod.includes(termo);
     });
-  }, [buscaProduto]);
+  }, [buscaProduto, produtosOptions]);
 
   const handlePuxarUltimoPedido = () => {
     if (!clienteSelecionado) return;
