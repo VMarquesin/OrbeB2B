@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useCart } from '../contexts/CartContext'
+import { useState, useEffect } from 'react';
+import { useCart } from '../contexts/CartContext';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Store,
@@ -7,130 +7,103 @@ import {
   ArrowRight,
   Truck,
   Package,
-  CreditCard,
   ShieldCheck,
   Lock,
-  CheckCircle2,
   X,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
-
-const mockDelivery = {
-  company: 'Supermercado Dois Irmãos',
-  cnpj: '12.345.678/0001-90',
-  address: 'Av. Central, 1500 - Galpão 3, Centro Comercial',
-  city: 'São Paulo, SP - 01000-000',
-};
-
-const paymentOptions = [
-  {
-    id: 'boleto',
-    label: 'Boleto Faturado',
-    description: '30 / 60 / 90 dias',
-  },
-  {
-    id: 'pix',
-    label: 'Pix (À vista)',
-    description: '5% de desconto',
-  },
-];
+import { criarPedido } from '../services/pedidosService';
+import { obterMeuPerfil } from '../services/cadastroService';
 
 export default function CheckoutB2BPage() {
-  const [selectedPayment, setSelectedPayment] = useState('boleto');
-  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false);
+  const [loading, setLoading]   = useState(false);
+  const [erro, setErro]         = useState('');
   const { cartItems, clearCart } = useCart();
-  const [addressForm, setAddressForm] = useState({
-    address: mockDelivery.address,
-    city: mockDelivery.city});
   const navigate = useNavigate();
-  const subtotal = cartItems.reduce(
-  (total,item)=>
-    total + ((item.price || 0) * item.qty),
-  0
-);
 
-  function handleAddressChange(e) {
-    const { name, value } = e.target;
-    setAddressForm((prev) => ({
-       ...prev, [name]: value, }));
+  // ── Dados do cliente buscados da API ────────────────────────────────────────
+  const [dadosCliente, setDadosCliente]         = useState(null);
+  const [loadingPerfil, setLoadingPerfil]       = useState(true);
+  const [erroPerfil, setErroPerfil]             = useState('');
+
+  useEffect(() => {
+    let cancelado = false;
+    async function carregarPerfil() {
+      setLoadingPerfil(true);
+      setErroPerfil('');
+      try {
+        const data = await obterMeuPerfil();
+        if (!cancelado && data) setDadosCliente(data);
+      } catch (err) {
+        if (!cancelado)
+          setErroPerfil(err.mensagemNormalizada ?? 'Não foi possível carregar os dados de entrega.');
+      } finally {
+        if (!cancelado) setLoadingPerfil(false);
+      }
     }
+    carregarPerfil();
+    return () => { cancelado = true; };
+  }, []);
 
-    function handleAddressRequest() {
+  // ── Formatações ─────────────────────────────────────────────────────────────
+  const cnpjFormatado = dadosCliente?.cnpj && dadosCliente.cnpj.length === 14
+    ? dadosCliente.cnpj.replace(/^(\d{2})(\d{3})(\d{3})(\d{4})(\d{2})$/, '$1.$2.$3/$4-$5')
+    : (dadosCliente?.cnpj || '—');
 
-  if (!addressForm.address.trim() || !addressForm.city.trim()) {
-    alert('Preencha o endereço e a cidade.');
-    return;
-  }
+  const enderecoCompleto = dadosCliente
+    ? [dadosCliente.logradouro, dadosCliente.numero, dadosCliente.bairro]
+        .filter(Boolean)
+        .join(', ')
+    : 'Carregando...';
 
-  const request = {
-    cliente: mockDelivery.company,
-    cnpj: mockDelivery.cnpj,
+  const cidadeEstadoCep = dadosCliente
+    ? [dadosCliente.cidade, dadosCliente.uf, dadosCliente.cep ? `CEP ${dadosCliente.cep}` : '']
+        .filter(Boolean)
+        .join(' — ')
+    : '';
 
-    enderecoAnterior: {
-      endereco: mockDelivery.address,
-      cidade: mockDelivery.city,
-    },
-
-    novoEndereco: {
-      endereco: addressForm.address,
-      cidade: addressForm.city,
-    },
-
-    status: 'Alteração de endereço para pedido',
-    origem: 'Portal B2B',
-    data: new Date().toISOString(),
-  };
-
-  console.log(
-    'Alteração de endereço do pedido:',
-    request
+  // ── Cálculos do carrinho ─────────────────────────────────────────────────────
+  const subtotal = cartItems.reduce(
+    (total, item) => total + ((item.price || 0) * item.qty),
+    0
   );
+  const totalItens = cartItems.reduce((t, item) => t + item.qty, 0);
 
-  setIsAddressModalOpen(false);
-}
+  // ── Finalizar pedido ─────────────────────────────────────────────────────────
+  async function handleFinalize(e) {
+    e.preventDefault();
+    setErro('');
+    setLoading(true);
 
-    function handleFinalize(e) {
-
-      e.preventDefault();
-
-      const order = {
-
-        id: Date.now,
-        items: cartItems,
-        payment: selectedPayment,
-        date: new Date(),
-        total: subtotal,
-
-      };
-
-      const orders = JSON.parse(localStorage.getItem('orders')) || [];
-
-      orders.unshift(order);
-
-      localStorage.setItem('Caseira_orders', JSON.stringify(orders));
-
-      console.log(
-        'Encomenda finalizada',
-        order
-      );
-
+    try {
+      // Zero Trust: clienteId e tenantId vêm do JWT no back-end.
+      // Nenhuma informação de pagamento é enviada — negociado diretamente no CRM/ERP.
+      const resposta = await criarPedido({
+        itens: cartItems.map((item) => ({
+          produtoId:     item.id,
+          quantidade:    item.qty,
+          precoUnitario: item.price,
+        })),
+      });
 
       clearCart();
 
-
-      navigate(
-        '/portal/confirmado',
-        {
-          state:{
-            orderId:'10493'
-          }
-        }
-      );
-
-}
+      navigate('/portal/confirmado', {
+        state: {
+          orderId:    resposta.codigo,
+          valorTotal: resposta.valorTotal,
+        },
+      });
+    } catch (err) {
+      setErro(err.mensagemNormalizada ?? 'Erro ao finalizar pedido. Tente novamente.');
+      setLoading(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-stone-50">
-      {/* Checkout-specific header */}
+      {/* Header do Checkout */}
       <header className="bg-white border-b border-stone-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
@@ -155,25 +128,16 @@ export default function CheckoutB2BPage() {
       </header>
 
       <div className="max-w-7xl mx-auto px-6 lg:px-8 py-8">
-        {/* Back link */}
+        {/* Voltar */}
         <Link
           to="/portal"
           className="
-            inline-flex
-            items-center
-            gap-2
-            px-4
-            py-2.5
-            mb-6
-            rounded-xl
-            bg-primary/10
-            text-primary
-            text-sm
-            font-semibold
-            hover:bg-primary
-            hover:text-white
-            transition-all
-            duration-200
+            inline-flex items-center gap-2
+            px-4 py-2.5 mb-6
+            rounded-xl bg-primary/10 text-primary
+            text-sm font-semibold
+            hover:bg-primary hover:text-white
+            transition-all duration-200
           "
         >
           <ArrowLeft className="w-4 h-4" strokeWidth={2} />
@@ -188,204 +152,104 @@ export default function CheckoutB2BPage() {
           onSubmit={handleFinalize}
           className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start"
         >
-          {/* ── Left column ── */}
+          {/* ── Coluna esquerda ── */}
           <div className="lg:col-span-2 space-y-5">
-            {/* Delivery data */}
-           {/* Delivery data */}
-<section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
 
-  <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+            {/* Dados de Entrega */}
+            <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
+              <div className="flex items-center justify-between pb-4 border-b border-stone-100">
+                <h2 className="flex items-center gap-2 text-base font-semibold text-stone-800">
+                  <Truck className="w-4 h-4 text-primary" strokeWidth={1.75} />
+                  Dados de Entrega
+                </h2>
+              </div>
 
-    <h2 className="flex items-center gap-2 text-base font-semibold text-stone-800">
-      <Truck
-        className="w-4 h-4 text-primary"
-        strokeWidth={1.75}
-      />
-      Dados de Entrega
-    </h2>
+              {/* Loading do perfil */}
+              {loadingPerfil && (
+                <div className="mt-6 flex items-center gap-3 text-stone-400">
+                  <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                  <span className="text-sm">Carregando dados cadastrais...</span>
+                </div>
+              )}
 
-    <button
-      type="button"
-      onClick={() => setIsAddressModalOpen(true)}
-      className="
-        inline-flex
-        items-center
-        gap-2
-        px-3
-        py-2
-        rounded-lg
-        bg-primary/10
-        text-primary
-        text-xs
-        font-semibold
-        border
-        border-primary/20
-        hover:bg-primary
-        hover:text-white
-        transition-all
-      "
-    >
-      Alterar endereço
-    </button>
+              {/* Erro ao carregar perfil */}
+              {erroPerfil && (
+                <div className="mt-4 flex items-center gap-2 p-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-xs">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <p>{erroPerfil}</p>
+                </div>
+              )}
 
-  </div>
+              {/* Dados reais */}
+              {!loadingPerfil && (
+                <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                  <div>
+                    <p className="text-xs text-stone-400 mb-0.5">Empresa</p>
+                    <p className="font-semibold text-stone-800">
+                      {dadosCliente?.razaoSocial || '—'}
+                    </p>
+                  </div>
 
-  <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
+                  <div>
+                    <p className="text-xs text-stone-400 mb-0.5">CNPJ</p>
+                    <p className="font-semibold text-stone-800">{cnpjFormatado}</p>
+                  </div>
 
-    <div>
-      <p className="text-xs text-stone-400 mb-0.5">
-        Empresa
-      </p>
+                  <div className="sm:col-span-2">
+                    <p className="text-xs text-stone-400 mb-1">Endereço de entrega</p>
+                    <div className="bg-stone-50 border border-stone-200 rounded-xl p-4">
+                      <p className="font-semibold text-stone-800">
+                        {enderecoCompleto || '—'}
+                      </p>
+                      {cidadeEstadoCep && (
+                        <p className="text-sm text-stone-500 mt-1">{cidadeEstadoCep}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
-      <p className="font-semibold text-stone-800">
-        {mockDelivery.company}
-      </p>
-    </div>
+              <div className="mt-4 flex items-start gap-2 text-xs text-stone-400">
+                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+                <p>
+                  O endereço cadastrado na empresa será utilizado para a entrega.
+                  Para alterações, acesse <strong>Perfil → Solicitar alteração de endereço</strong>.
+                </p>
+              </div>
+            </section>
 
-    <div>
-      <p className="text-xs text-stone-400 mb-0.5">
-        CNPJ
-      </p>
-
-      <p className="font-semibold text-stone-800">
-        {mockDelivery.cnpj}
-      </p>
-    </div>
-
-    <div className="sm:col-span-2">
-
-      <p className="text-xs text-stone-400 mb-1">
-        Endereço de entrega
-      </p>
-
-      <div className="bg-stone-50 border border-stone-200 rounded-xl p-4">
-
-        <p className="font-semibold text-stone-800">
-          {addressForm.address}
-        </p>
-
-        <p className="text-sm text-stone-500 mt-1">
-          {addressForm.city}
-        </p>
-
-      </div>
-
-    </div>
-
-  </div>
-
-  <div className="mt-4 flex items-start gap-2 text-xs text-stone-400">
-
-    <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
-
-    <p>
-      O endereço informado será utilizado para a entrega deste pedido.
-    </p>
-
-  </div>
-
-</section>
-
-            {/* Cart summary */}
+            {/* Resumo do Carrinho */}
             <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
               <h2 className="flex items-center gap-2 text-base font-semibold text-stone-800 pb-4 border-b border-stone-100">
                 <Package className="w-4 h-4 text-primary" strokeWidth={1.75} />
                 Resumo do Carrinho
               </h2>
-                  <div className="mt-4 space-y-4">
-
-                  {
-                  cartItems.map(item => (
-
+              <div className="mt-4 space-y-4">
+                {cartItems.map(item => (
                   <div
-                  key={`${item.id}-${item.packaging?.id}`}
-                  className="flex items-center gap-4"
+                    key={`${item.id}-${item.packaging?.id}`}
+                    className="flex items-center gap-4"
                   >
-
-                  <img
-                  src={item.image}
-                  alt={item.name}
-                  className="
-                  w-14
-                  h-14
-                  rounded-lg
-                  object-cover
-                  border
-                  border-stone-100
-                  "
-                  />
-
-                  <div className="flex-1">
-
-                  <p className="text-sm font-semibold text-stone-800">
-                  {item.name}
-                  </p>
-
-                  <p className="text-xs text-stone-400">
-                  {item.packaging?.name}
-                  </p>
-
-                  <p className="text-xs text-stone-400">
-                  Quantidade: {item.qty}
-                  </p>
-
-                  </div>
-
-                  </div>
-
-                  ))
-
-                  }
-
-                  </div>
-            </section>
-
-            {/* Payment */}
-            <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
-              <h2 className="flex items-center gap-2 text-base font-semibold text-stone-800 pb-4 border-b border-stone-100">
-                <CreditCard
-                  className="w-4 h-4 text-primary"
-                  strokeWidth={1.75}
-                />
-                Forma de Pagamento
-              </h2>
-              <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {paymentOptions.map((opt) => (
-                  <label
-                    key={opt.id}
-                    className={`flex items-center gap-3 p-4 rounded-xl border-2 cursor-pointer transition ${
-                      selectedPayment === opt.id
-                        ? 'border-primary bg-primary/5'
-                        : 'border-stone-200 hover:border-stone-300'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="payment"
-                      value={opt.id}
-                      checked={selectedPayment === opt.id}
-                      onChange={() => setSelectedPayment(opt.id)}
-                      className="accent-primary w-4 h-4 shrink-0"
+                    <img
+                      src={item.image}
+                      alt={item.name}
+                      className="w-14 h-14 rounded-lg object-cover border border-stone-100"
                     />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-stone-800">
-                        {opt.label}
-                      </p>
-                      <p className="text-xs text-stone-500">{opt.description}</p>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-stone-800">{item.name}</p>
+                      <p className="text-xs text-stone-400">{item.packaging?.name}</p>
+                      <p className="text-xs text-stone-400">Quantidade: {item.qty}</p>
                     </div>
-                    {selectedPayment === opt.id && (
-                      <CheckCircle2
-                        className="w-4 h-4 text-primary shrink-0"
-                        strokeWidth={2}
-                      />
-                    )}
-                  </label>
+                    <p className="text-sm font-bold text-stone-800">
+                      R$ {(item.price * item.qty).toFixed(2)}
+                    </p>
+                  </div>
                 ))}
               </div>
             </section>
           </div>
 
-          {/* ── Right column: order summary ── */}
+          {/* ── Coluna direita: Resumo da Compra ── */}
           <div className="lg:sticky lg:top-24">
             <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
               <h2 className="text-base font-semibold text-stone-800 pb-4 border-b border-stone-100">
@@ -393,13 +257,8 @@ export default function CheckoutB2BPage() {
               </h2>
               <div className="mt-4 space-y-3 text-sm">
                 <div className="flex justify-between text-stone-600">
-                  <span>
-                  Subtotal ({cartItems.reduce((t,item)=>t+item.qty, 0)} caixas)
-                  </span>
-
-                  <span>
-                  R$ {subtotal.toFixed(2)}
-                  </span>
+                  <span>Subtotal ({totalItens} {totalItens === 1 ? 'item' : 'itens'})</span>
+                  <span>R$ {subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-stone-600">
                   <span>Frete (Logística A Caseira)</span>
@@ -415,22 +274,30 @@ export default function CheckoutB2BPage() {
                     <p className="text-xl font-bold text-primary">
                       R$ {subtotal.toFixed(2)}
                     </p>
-                    <p className="text-xs text-stone-400">
-                      Faturamento em até 3x no boleto
+                    <p className="text-xs text-stone-400 mt-0.5 max-w-[160px] leading-relaxed">
+                      Condições de pagamento serão alinhadas com seu fornecedor após o envio.
                     </p>
                   </div>
                 </div>
               </div>
 
+              {erro && (
+                <p className="mt-3 text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-center">
+                  {erro}
+                </p>
+              )}
+
               <button
                 type="submit"
+                disabled={loading || cartItems.length === 0}
                 className="mt-5 w-full flex items-center justify-center gap-2 py-3.5
                   bg-primary hover:bg-primary-hover active:scale-[0.98]
                   text-white font-semibold rounded-xl
-                  shadow-md shadow-primary/25 transition-all duration-150"
+                  shadow-md shadow-primary/25 transition-all duration-150
+                  disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Finalizar Encomenda
-                <ArrowRight className="w-4 h-4" strokeWidth={2} />
+                {loading ? 'Enviando...' : 'Finalizar Encomenda'}
+                {!loading && <ArrowRight className="w-4 h-4" strokeWidth={2} />}
               </button>
 
               <p className="mt-4 flex items-center justify-center gap-1.5 text-xs text-stone-400">
@@ -440,212 +307,7 @@ export default function CheckoutB2BPage() {
             </section>
           </div>
         </form>
-
-        {/* Modal de alteração de endereço */}
-{isAddressModalOpen && (
-  <div
-    className="
-      fixed
-      inset-0
-      z-[70]
-      bg-black/40
-      flex
-      items-center
-      justify-center
-      p-4
-    "
-    onClick={(e) => {
-      if (e.target === e.currentTarget) {
-        setIsAddressModalOpen(false);
-      }
-    }}
-  >
-
-    <div
-      className="
-        bg-white
-        rounded-3xl
-        shadow-2xl
-        w-full
-        max-w-lg
-        max-h-[90vh]
-        overflow-y-auto
-      "
-    >
-
-      {/* Header */}
-      <div className="flex items-center justify-between px-6 py-5 border-b border-stone-100">
-
-        <div>
-          <h2 className="text-lg font-bold text-stone-900">
-            Alterar endereço de entrega
-          </h2>
-
-          <p className="text-xs text-stone-400 mt-1">
-            Informe o endereço que deseja utilizar neste pedido.
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => setIsAddressModalOpen(false)}
-          className="
-            p-2
-            rounded-lg
-            text-stone-400
-            hover:text-stone-700
-            hover:bg-stone-100
-            transition
-          "
-        >
-          <X className="w-5 h-5" />
-        </button>
-
       </div>
-
-      {/* Conteúdo */}
-      <div className="p-6 space-y-5">
-
-        {/* Endereço */}
-        <div>
-
-          <label className="block text-xs font-bold text-stone-500 mb-1.5">
-            Endereço
-          </label>
-
-          <input
-            type="text"
-            name="address"
-            value={addressForm.address}
-            onChange={handleAddressChange}
-            placeholder="Rua, avenida, número..."
-            className="
-              w-full
-              px-3
-              py-2.5
-              rounded-lg
-              border
-              border-stone-200
-              bg-white
-              text-sm
-              text-stone-800
-              outline-none
-              focus:border-primary
-              focus:ring-2
-              focus:ring-primary/10
-            "
-          />
-
-        </div>
-
-        {/* Cidade */}
-        <div>
-
-          <label className="block text-xs font-bold text-stone-500 mb-1.5">
-            Cidade / Estado / CEP
-          </label>
-
-          <input
-            type="text"
-            name="city"
-            value={addressForm.city}
-            onChange={handleAddressChange}
-            placeholder="São Paulo, SP - 01000-000"
-            className="
-              w-full
-              px-3
-              py-2.5
-              rounded-lg
-              border
-              border-stone-200
-              bg-white
-              text-sm
-              text-stone-800
-              outline-none
-              focus:border-primary
-              focus:ring-2
-              focus:ring-primary/10
-            "
-          />
-
-        </div>
-
-        {/* Aviso */}
-        <div className="rounded-xl border border-yellow-300 bg-yellow-50 p-4">
-
-          <div className="flex gap-3">
-
-            <ShieldCheck className="w-5 h-5 text-yellow-700 shrink-0" />
-
-            <div>
-
-              <p className="text-sm font-semibold text-stone-800">
-                Atenção
-              </p>
-
-              <p className="text-xs text-stone-600 mt-1">
-                A alteração será registrada para este pedido.
-                O endereço cadastrado da empresa não será alterado.
-              </p>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* Footer */}
-      <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-stone-100">
-
-        <button
-          type="button"
-          onClick={() => setIsAddressModalOpen(false)}
-          className="
-            px-4
-            py-2.5
-            rounded-lg
-            border
-            border-stone-200
-            text-sm
-            font-semibold
-            text-stone-600
-            hover:bg-stone-50
-            transition
-          "
-        >
-          Cancelar
-        </button>
-
-        <button
-          type="button"
-          onClick={handleAddressRequest}
-          className="
-            px-5
-            py-2.5
-            rounded-lg
-            bg-primary
-            text-white
-            text-sm
-            font-semibold
-            hover:bg-primary-hover
-            transition
-          "
-        >
-          Confirmar endereço
-        </button>
-
-      </div>
-
     </div>
-
-  </div>
-)}
-        
-
-      </div>  
-
-  </div>
-)}
-  
+  );
+}

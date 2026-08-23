@@ -142,6 +142,26 @@ public class DatabaseDevService
         await _context.Clientes.AddRangeAsync(clientes);
         await _context.SaveChangesAsync();
 
+        // =====================================================================
+        // --- Usuário Comprador (vinculado ao primeiro cliente aprovado) ---
+        // =====================================================================
+        var primeiroCliente = clientes.First(c => c.StatusCadastro == StatusCadastroCliente.Aprovado);
+
+        var senhaComprador = BCrypt.Net.BCrypt.HashPassword("   !");
+
+        var usuarioComprador = new Usuario(
+            perfilComprador.Id,
+            $"Contato - {primeiroCliente.NomeFantasia}",
+            "comprador@orbeb2b.com.br",
+            senhaComprador,
+            clienteId: primeiroCliente.Id   // vínculo direto via construtor (parâmetro opcional)
+        );
+
+        await _context.Usuarios.AddAsync(usuarioComprador);
+        await _context.SaveChangesAsync();
+        // =====================================================================
+
+
         // --- 300 Pedidos nos últimos 6 meses com 2 a 8 itens ---
         var fakerPedido = new Faker("pt_BR");
         var statusLogisticaValores = Enum.GetValues<StatusFilaLogistica>();

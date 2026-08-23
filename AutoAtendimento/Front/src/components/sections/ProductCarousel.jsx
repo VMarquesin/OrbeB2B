@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
-import {
-  ArrowRight,
-  ChevronLeft,
-  ChevronRight,
-} from 'lucide-react';
-import { fetchProducts } from '../../services/apiMock';
-import ProductCard from '../ui/ProductCard';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
+import { obterProdutosPublicos } from '../../services/vitrineService';
 import useScrollAnimation from '../../hooks/useScrollAnimation';
 
 const AUTO_ADVANCE_MS = 3500;
@@ -41,6 +36,29 @@ function CarouselItemSkeleton() {
         <div className="mt-1 h-10 rounded-xl bg-stone-100" />
       </div>
     </div>
+  );
+}
+
+// Card inline — não depende do ProductCard com shape antigo
+function ProdutoCarouselCard({ produto }) {
+  return (
+    <Link
+      to={`/catalogo/${produto.id}`}
+      className="flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
+    >
+      <img
+        src={`https://placehold.co/400x280/C2856A/FFF?text=${encodeURIComponent((produto.descricao ?? '').slice(0, 14))}`}
+        alt={produto.descricao}
+        className="w-full h-44 object-cover hover:scale-105 transition-transform duration-300"
+      />
+      <div className="flex flex-col flex-1 gap-1 p-4">
+        <p className="text-[10px] font-bold text-primary uppercase tracking-wider">{produto.embalagem}</p>
+        <h3 className="text-sm font-semibold text-gray-900 leading-snug">{produto.descricao}</h3>
+        <span className="mt-3 flex items-center justify-center rounded-full bg-primary px-4 py-2 text-xs font-semibold text-white hover:bg-primary-hover transition">
+          Saiba Mais
+        </span>
+      </div>
+    </Link>
   );
 }
 
@@ -87,16 +105,22 @@ export default function ProductCarousel() {
 
   const { ref, isVisible } = useScrollAnimation();
 
-  const tripled = useMemo(
-    () => [...products, ...products, ...products],
-    [products]
-  );
+  const tripled = useMemo(() => [...products, ...products, ...products], [products]);
 
   useEffect(() => {
-    fetchProducts().then((data) => {
-      setProducts(data.slice(0, 6));
-      setIsLoading(false);
-    });
+    let cancelado = false;
+    async function carregar() {
+      try {
+        const data = await obterProdutosPublicos();
+        if (!cancelado) setProducts(data.slice(0, 6));
+      } catch {
+        // Silencioso — o carrossel da Home não deve quebrar a landing page
+      } finally {
+        if (!cancelado) setIsLoading(false);
+      }
+    }
+    carregar();
+    return () => { cancelado = true; };
   }, []);
 
   useEffect(() => {
@@ -217,10 +241,9 @@ export default function ProductCarousel() {
             transition-all
             duration-700
             ease-out
-            ${
-              isVisible
-                ? 'opacity-100 translate-y-0'
-                : 'opacity-0 translate-y-8'
+            ${isVisible
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 translate-y-8'
             }
           `}
         >
@@ -322,35 +345,18 @@ export default function ProductCarousel() {
 
             <div
               ref={trackRef}
-              className="
-                flex-1
-                flex
-                gap-5
-                overflow-x-auto
-                scrollbar-hide
-                pb-2
-                pt-1
-              "
+              className="flex-1 flex gap-5 overflow-x-auto scrollbar-hide pb-2"
             >
               {isLoading
-                ? Array.from({ length: 6 }).map((_, i) => (
-                    <CarouselItemSkeleton key={i} />
-                  ))
-                : tripled.map((product, i) => (
-                    <div
-                      key={`${product.id}-${i}`}
-                      className="
-                        min-w-[240px]
-                        sm:min-w-[260px]
-                        shrink-0
-                      "
-                    >
-                      <ProductCard
-                        {...product}
-                        linkTo={`/catalogo/${product.id}`}
-                      />
-                    </div>
-                  ))}
+                ? Array.from({ length: 6 }).map((_, i) => <CarouselItemSkeleton key={i} />)
+                : tripled.map((produto, i) => (
+                  <div
+                    key={`${produto.id}-${i}`}
+                    className="min-w-[240px] sm:min-w-[260px] shrink-0"
+                  >
+                    <ProdutoCarouselCard produto={produto} />
+                  </div>
+                ))}
             </div>
 
             {!isLoading && (
