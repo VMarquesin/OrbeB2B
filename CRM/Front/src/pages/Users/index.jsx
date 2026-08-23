@@ -1,34 +1,14 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Shield, Users, Plus, Edit3, Trash2, CheckCircle2, X, ShieldAlert, Calendar
 } from 'lucide-react';
+import api from '../../services/api';
+import Toast from '../../components/Toast';
 
 export default function GestaoUsuarios() {
   // Mock inicial alinhado ao Schema empresa_funcionarios
-  const [funcionarios, setFuncionario] = useState([
-    {
-      id: "f1a2b3c4-e5f6-7890-abcd-ef1234567890",
-      empresa_id: "emp-01",
-      usuario_id: "usr-01",
-      nome: "Jaqueline Silva",
-      email: "jaqueline@acaseira.com.br",
-      cargo: "Operadora de PCP & Vendas",
-      departamento: "Comercial / Produção",
-      data_admissao: "2024-02-10T08:00:00Z",
-      acessos: ["orcamentos", "clientes", "produtos"]
-    },
-    {
-      id: "f2b3c4d5-f6a1-8901-bcde-f12345678901",
-      empresa_id: "emp-01",
-      usuario_id: "usr-02",
-      nome: "Marcio Admin",
-      email: "admin@acaseira.com.br",
-      cargo: "Diretor Executivo",
-      departamento: "Administração",
-      data_admissao: "2023-01-15T08:00:00Z",
-      acessos: ["ALL"]
-    }
-  ]);
+  const [funcionarios, setFuncionario] = useState([]);
+  const [perfisDisponiveis, setPerfisDisponiveis] = useState([]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -36,13 +16,40 @@ export default function GestaoUsuarios() {
 
   // Campos do formulário mapeados com empresa_funcionarios + dados de usuário
   const [formData, setFormData] = useState({
+    perfilId: '',
     nome: '',
     email: '',
     cargo: '',
     departamento: '',
-    data_admissao: new Date().toISOString().split('T')[0],
-    acessos: []
+    data_admissao: new Date().toISOString().split('T')[0]
   });
+
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const showToast = (message, type = 'success') => setToast({ show: true, message, type });
+
+  const carregarDados = async () => {
+    try {
+      const [resUsuarios, resPerfis] = await Promise.all([
+        api.get('/api/usuarios'),
+        api.get('/api/lookups/perfis')
+      ]);
+      const usuariosMapeados = resUsuarios.data.map(u => ({
+        ...u,
+        cargo: u.cargo || u.Cargo || '',
+        departamento: u.departamento || u.Departamento || '',
+        data_admissao: u.data_admissao || u.DataAdmissao || ''
+      }));
+      setFuncionario(usuariosMapeados);
+      setPerfisDisponiveis(resPerfis.data);
+    } catch (erro) {
+      console.error("Erro ao carregar dados:", erro);
+      showToast("Erro ao carregar dados dos colaboradores.", "error");
+    }
+  };
+
+  useEffect(() => {
+    carregarDados();
+  }, []);
 
   const modulosDisponiveis = [
     { id: 'orcamentos', label: 'Gestão Orçamentária & PCP' },
@@ -53,22 +60,22 @@ export default function GestaoUsuarios() {
   ];
 
   const funcionariosFiltrados = useMemo(() => {
-    return funcionarios.filter(f => 
-      f.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.cargo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      f.departamento.toLowerCase().includes(searchTerm.toLowerCase())
+    return (funcionarios || []).filter(f => 
+      (f.nome || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (f.cargo || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (f.departamento || '').toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [funcionarios, searchTerm]);
 
   const handleNovoFuncionario = () => {
     setFuncionarioEmEdicao(null);
     setFormData({
+      perfilId: '',
       nome: '',
       email: '',
       cargo: '',
       departamento: '',
-      data_admissao: new Date().toISOString().split('T')[0],
-      acessos: []
+      data_admissao: new Date().toISOString().split('T')[0]
     });
     setIsModalOpen(true);
   };
@@ -76,12 +83,11 @@ export default function GestaoUsuarios() {
   const handleEditarFuncionario = (func) => {
     setFuncionarioEmEdicao(func);
     setFormData({
-      nome: func.nome,
-      email: func.email,
-      cargo: func.cargo,
-      departamento: func.departamento,
-      data_admissao: func.data_admissao ? func.data_admissao.split('T')[0] : '',
-      acessos: func.acessos
+      nome: func.nome || '',
+      email: func.email || '',
+      cargo: func.cargo || '',
+      departamento: func.departamento || '',
+      data_admissao: func.data_admissao ? func.data_admissao.split('T')[0] : ''
     });
     setIsModalOpen(true);
   };
@@ -97,27 +103,41 @@ export default function GestaoUsuarios() {
     });
   };
 
-  const handleSalvarFuncionario = (e) => {
+  const handleSalvarFuncionario = async (e) => {
     e.preventDefault();
     if (!formData.nome || !formData.cargo) {
-      alert("Nome e Cargo são obrigatórios.");
+      showToast("Nome e Cargo são obrigatórios.", "error");
       return;
     }
 
-    if (funcionarioEmEdicao) {
-      setFuncionario(prev => prev.map(f => f.id === funcionarioEmEdicao.id ? { ...f, ...formData } : f));
-    } else {
-      const novoFunc = {
-        id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-        empresa_id: "emp-01",
-        usuario_id: "usr-" + Math.floor(Math.random() * 1000),
-        ...formData,
-        data_admissao: new Date(formData.data_admissao).toISOString()
-      };
-      setFuncionario(prev => [novoFunc, ...prev]);
+    try {
+      if (funcionarioEmEdicao) {
+        const payloadPut = {
+          nome: formData.nome,
+          cargo: formData.cargo,
+          departamento: formData.departamento
+        };
+        await api.put(`/api/usuarios/${funcionarioEmEdicao.id}`, payloadPut);
+        showToast("Colaborador atualizado com sucesso!");
+      } else {
+        const payloadPost = {
+          perfilId: formData.perfilId,
+          nome: formData.nome,
+          email: formData.email,
+          senha: "Mudar@123", 
+          cargo: formData.cargo,
+          departamento: formData.departamento
+        };
+        await api.post('/api/usuarios', payloadPost);
+        showToast("Colaborador cadastrado com sucesso! Senha: Mudar@123");
+      }
+      setIsModalOpen(false);
+      carregarDados();
+    } catch (erro) {
+      console.error("Erro ao salvar:", erro);
+      const msg = erro.response?.data?.mensagem || erro.response?.data?.errors;
+      showToast(typeof msg === 'object' ? JSON.stringify(msg) : msg || "Falha de comunicação.", "error");
     }
-
-    setIsModalOpen(false);
   };
 
   const handleRemoverFuncionario = (id) => {
@@ -181,17 +201,9 @@ export default function GestaoUsuarios() {
                   {func.data_admissao ? new Date(func.data_admissao).toLocaleDateString('pt-BR') : '-'}
                 </td>
                 <td className="p-4">
-                  <div className="flex flex-wrap gap-1">
-                    {func.acessos.includes('ALL') ? (
-                      <span className="text-xs font-bold text-rose-700 bg-rose-50 px-2.5 py-1 rounded-full">Acesso Total (Admin)</span>
-                    ) : (
-                      func.acessos.map(acc => (
-                        <span key={acc} className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded uppercase">
-                          {acc}
-                        </span>
-                      ))
-                    )}
-                  </div>
+                  <span className="text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded uppercase">
+                    Acesso Padrão
+                  </span>
                 </td>
                 <td className="p-4 text-center">
                   <div className="flex justify-center items-center gap-2">
@@ -246,6 +258,26 @@ export default function GestaoUsuarios() {
                 />
               </div>
 
+              {!funcionarioEmEdicao && (
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 uppercase">Perfil de Acesso *</label>
+                  <select
+                    name="perfilId"
+                    value={formData.perfilId}
+                    onChange={(e) => setFormData({ ...formData, perfilId: e.target.value })}
+                    className="w-full p-3 border border-slate-300 rounded-xl outline-none focus:border-indigo-500 bg-white"
+                    required
+                  >
+                    <option value="">Selecione o nível de permissão...</option>
+                    {(perfisDisponiveis || []).map((perfil) => (
+                      <option key={perfil.id} value={perfil.id}>
+                        {perfil.nomePerfil || perfil.nome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-500 uppercase">Cargo (cargo) *</label>
@@ -280,23 +312,7 @@ export default function GestaoUsuarios() {
                 />
               </div>
 
-              {/* MATRIZ DE PERMISSÕES DE ACESSO */}
-              <div className="pt-2">
-                <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Permissões de Acesso aos Módulos</label>
-                <div className="space-y-2 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                  {modulosDisponiveis.map(mod => (
-                    <label key={mod.id} className="flex items-center gap-3 cursor-pointer">
-                      <input 
-                        type="checkbox"
-                        checked={formData.acessos.includes('ALL') || formData.acessos.includes(mod.id)}
-                        onChange={() => handleToggleModulo(mod.id)}
-                        className="w-4 h-4 accent-indigo-600 rounded"
-                      />
-                      <span className="text-sm font-bold text-slate-700">{mod.label}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
+
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-200">
                 <button type="button" onClick={() => setIsModalOpen(false)} className="px-5 py-2.5 font-bold text-slate-500 hover:bg-slate-100 rounded-xl transition-colors">
@@ -312,6 +328,12 @@ export default function GestaoUsuarios() {
         </div>
       )}
 
+      <Toast 
+        show={toast.show} 
+        message={toast.message} 
+        type={toast.type} 
+        onClose={() => setToast({ ...toast, show: false })} 
+      />
     </div>
   );
 }

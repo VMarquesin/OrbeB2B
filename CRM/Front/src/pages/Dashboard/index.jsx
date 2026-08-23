@@ -5,6 +5,7 @@ import {
   CircleDollarSign, AlertCircle, Factory, Store, 
   ArrowRight, BarChart3
 } from 'lucide-react';
+import api from '../../services/api';
 import { mockOrders, mockClients } from '../../services/mockData';
 import { formatCurrency } from '../../utils/formatCurrency';
 
@@ -37,10 +38,71 @@ export default function Dashboard() {
   const capacidadeTotalTurno = configPcp.mesasFisicas * capacidadePorMesa;
 
   // =========================================================================
-  // 2. MOTOR DE CÁLCULO DE DADOS (LENDO O MOCK DINAMICAMENTE)
+  // 1B. INTEGRAÇÃO COM BACKEND (API)
+  // =========================================================================
+  const [dashData, setDashData] = useState({
+    receitaValidada: 0,
+    clientesAtivos: 0,
+    clientesEmRisco: 0,
+    validacaoPendente: 0
+  });
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const [faturamentoRes, clientesRes, dashboardRes] = await Promise.all([
+          api.get('/api/inteligencia/faturamento?dataInicio=2000-01-01&dataFim=2100-12-31').catch(() => ({ data: {} })),
+          api.get('/api/clientes').catch(() => ({ data: [] })),
+          api.get('/api/inteligencia/dashboard').catch(() => ({ data: {} }))
+        ]);
+
+        let receita = 0;
+        if (faturamentoRes.data) {
+          receita = faturamentoRes.data.ReceitaPeriodo || faturamentoRes.data.receitaPeriodo || 0;
+        }
+
+        let ativos = 0;
+        let emRisco = 0;
+        if (clientesRes.data && Array.isArray(clientesRes.data)) {
+          clientesRes.data.forEach(c => {
+            const status = String(c.StatusCadastro || c.statusCadastro || c.status_cadastro || '').toLowerCase();
+            
+            // "onde diferente de 'rejeitado' ou '2' significa ativo"
+            if (status !== 'rejeitado' && status !== '2') {
+              ativos++;
+              
+              // Se estiver Pendente (0) de aprovação, consideramos como Risco de Evasão na falta de métrica melhor
+              if (status === 'pendente' || status === '0') {
+                emRisco++;
+              }
+            }
+          });
+        }
+
+        let pendentes = 0;
+        if (dashboardRes.data && (dashboardRes.data.Cards || dashboardRes.data.cards)) {
+          const cards = dashboardRes.data.Cards || dashboardRes.data.cards;
+          pendentes = cards.ValidacaoPendenteQtd || cards.validacaoPendenteQtd || 0;
+        }
+
+        setDashData({
+          receitaValidada: receita,
+          clientesAtivos: ativos,
+          clientesEmRisco: emRisco,
+          validacaoPendente: pendentes
+        });
+      } catch (error) {
+        console.error("Erro ao carregar dados do dashboard:", error);
+      }
+    };
+
+    fetchDashboardData();
+  }, []);
+
+  // =========================================================================
+  // 2. MOTOR DE CÁLCULO DE DADOS PARCIAL (MOCK)
   // =========================================================================
   const metricas = useMemo(() => {
-    let receitaValidada = 0;
     let faturamentoProprio = 0;
     let faturamentoTerceiro = 0;
     let unidadesPropriasFila = 0;
@@ -62,7 +124,6 @@ export default function Dashboard() {
 
       // B. Financeiro e Rankings - Conta apenas orçamentos Aprovados/Concluídos
       if (pedido.status !== 'aguardando_validacao' && pedido.status !== 'pendente') {
-        receitaValidada += (pedido.valor_total_pedido || 0);
 
         if (pedido.itemsDetalhados) {
           pedido.itemsDetalhados.forEach(item => {
@@ -99,7 +160,6 @@ export default function Dashboard() {
       .sort((a, b) => b.quantidade - a.quantidade).slice(0, 3);
 
     return {
-      receitaValidada,
       faturamentoProprio, faturamentoTerceiro, pctProprio, pctTerceiro,
       unidadesPropriasFila, topProprios, topTerceiros
     };
@@ -110,10 +170,6 @@ export default function Dashboard() {
   // =========================================================================
   const mesasEmUso = metricas.unidadesPropriasFila > 0 ? (metricas.unidadesPropriasFila / capacidadePorMesa).toFixed(1) : 0;
   const ocupacaoTurno = Math.min(100, ((metricas.unidadesPropriasFila / capacidadeTotalTurno) * 100)).toFixed(1);
-  
-  const pedidosLandingPage = mockOrders.filter(o => o.status === 'aguardando_validacao' || o.status_logistica === 'aguardando_validacao');
-  const carteiraAtiva = mockClients.filter(c => c.status_cadastro === 'ATIVO').length;
-  const riscoEvasao = mockClients.filter(c => c.status_cadastro === 'EM_RISCO').length;
 
   return (
     <div className="p-8 space-y-6 bg-slate-50/50 dark:bg-slate-950/50 min-h-screen">
@@ -183,7 +239,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Receita Validada</p>
-              <h3 className="text-2xl font-black text-slate-800 mt-1">{formatCurrency(metricas.receitaValidada)}</h3>
+              <h3 className="text-2xl font-black text-slate-800 mt-1">{formatCurrency(dashData.receitaValidada)}</h3>
             </div>
             <div className="p-3 bg-amber-50 text-amber-600 rounded-xl group-hover:scale-110 transition-transform">
               <CircleDollarSign size={22} />
@@ -200,15 +256,10 @@ export default function Dashboard() {
           onClick={() => navigate('/pedidos')}
           className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-amber-400 transition-all cursor-pointer group flex flex-col justify-between relative overflow-hidden"
         >
-          {pedidosLandingPage.length > 0 && (
-            <span className="absolute top-0 right-0 bg-amber-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-xl shadow-sm animate-pulse">
-              NOVO VIA LANDING PAGE
-            </span>
-          )}
           <div className="flex justify-between items-start">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Validação Pendente</p>
-              <h3 className="text-2xl font-black text-slate-800 mt-1">{pedidosLandingPage.length} <span className="text-sm font-medium text-slate-500">orçamentos</span></h3>
+              <h3 className="text-2xl font-black text-slate-800 mt-1">{dashData.validacaoPendente} <span className="text-sm font-medium text-slate-500">orçamentos</span></h3>
             </div>
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl group-hover:scale-110 transition-transform">
               <ShoppingCart size={22} />
@@ -228,7 +279,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Carteira Ativa</p>
-              <h3 className="text-2xl font-black text-slate-800 mt-1">{carteiraAtiva} <span className="text-sm font-medium text-emerald-600 flex-inline items-center">clientes</span></h3>
+              <h3 className="text-2xl font-black text-slate-800 mt-1">{dashData.clientesAtivos} <span className="text-sm font-medium text-emerald-600 flex-inline items-center">clientes</span></h3>
             </div>
             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-xl group-hover:scale-110 transition-transform">
               <Users size={22} />
@@ -248,7 +299,7 @@ export default function Dashboard() {
           <div className="flex justify-between items-start">
             <div>
               <p className="text-xs font-bold text-rose-500 uppercase tracking-wider">Risco de Evasão</p>
-              <h3 className="text-2xl font-black text-rose-600 mt-1">{riscoEvasao} <span className="text-xs font-medium text-slate-400">em risco</span></h3>
+              <h3 className="text-2xl font-black text-rose-600 mt-1">{dashData.clientesEmRisco} <span className="text-xs font-medium text-slate-400">em risco</span></h3>
             </div>
             <div className="p-3 bg-rose-50 text-rose-600 rounded-xl group-hover:scale-110 transition-transform">
               <AlertCircle size={22} />

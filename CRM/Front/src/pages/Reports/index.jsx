@@ -1,8 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Download, FileSpreadsheet, FileText, Filter, TrendingUp, 
   BarChart3, PieChart, Activity, Users, LayoutList, Briefcase, Store
 } from 'lucide-react';
+import api from '../../services/api';
 import { mockOrders } from '../../services/mockData';
 import { formatCurrency } from '../../utils/formatCurrency';
 
@@ -13,9 +14,58 @@ export default function Reports() {
   const [filtroSegmento, setFiltroSegmento] = useState('todos');
 
   // ==========================================
-  // O MOTOR MATEMÁTICO DO BI (AGRUPAMENTO)
+  // DADOS REAIS DO BACKEND
+  // ==========================================
+  const [faturamentoData, setFaturamentoData] = useState({
+    receitaTotal: 0,
+    ticketMedio: 0,
+    historico: []
+  });
+
+  useEffect(() => {
+    // Utilizamos o endpoint de faturamento que está blindado contra o erro de datas
+    api.get('/api/inteligencia/faturamento?dataInicio=2000-01-01&dataFim=2100-12-31')
+      .then(res => {
+        if (res.data) {
+          setFaturamentoData({
+            receitaTotal: res.data.ReceitaPeriodo || res.data.receitaPeriodo || 0,
+            ticketMedio: res.data.TicketMedio || res.data.ticketMedio || 0,
+            historico: res.data.HistoricoPedidos || res.data.historicoPedidos || []
+          });
+        }
+      })
+      .catch(e => console.error("Erro ao carregar faturamento no BI", e));
+  }, []);
+
+  // RANKING LTV BASEADO EM DADOS REAIS
+  const clientesOrdenadosAPI = useMemo(() => {
+    const ranking = {};
+    faturamentoData.historico.forEach(pedido => {
+      // Filtrando mes e segmento localmente da mesma forma se tivessemos os dados
+      // Obs: A API já retorna tudo, podemos aplicar os mesmos filtros do dashboard se desejado
+      const nomeDoCliente = pedido.ClienteNome || pedido.clienteNome || 'Cliente Não Identificado';
+      const valorFechado = pedido.ValorFechado || pedido.valorFechado || 0;
+      
+      if (ranking[nomeDoCliente]) {
+        ranking[nomeDoCliente].receita += valorFechado;
+        ranking[nomeDoCliente].qtdPedidos += 1;
+      } else {
+        ranking[nomeDoCliente] = {
+          nome: nomeDoCliente,
+          receita: valorFechado,
+          qtdPedidos: 1
+        };
+      }
+    });
+    return Object.values(ranking).sort((a, b) => b.receita - a.receita);
+  }, [faturamentoData.historico]);
+
+  // ==========================================
+  // O MOTOR MATEMÁTICO DO BI (AGRUPAMENTO) MOCKADO
   // ==========================================
   const relatorioBI = useMemo(() => {
+    // TODO: Aguardando correção da /api/pedidos no backend para integrar a Curva ABC
+    // A Curva ABC depende dos itens de cada pedido. Manteve-se o uso do mockOrders por segurança para não quebrar a UI.
     let receitaTotal = 0;
     const rankingProdutos = {};
     const rankingClientes = {};
@@ -207,7 +257,7 @@ export default function Reports() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between print:break-inside-avoid print:border-slate-300">
           <div className="space-y-1">
             <p className="text-slate-500 text-xs font-bold uppercase tracking-wider print:text-slate-800">Volume Analisado (Faturamento)</p>
-            <h3 className="text-3xl font-black text-slate-800 print:text-black">{formatCurrency(relatorioBI.receitaTotal)}</h3>
+            <h3 className="text-3xl font-black text-slate-800 print:text-black">{formatCurrency(faturamentoData.receitaTotal)}</h3>
           </div>
           <div className="bg-indigo-50 text-indigo-600 p-4 rounded-xl print:hidden"><BarChart3 size={32} /></div>
         </div>
@@ -215,7 +265,7 @@ export default function Reports() {
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between print:break-inside-avoid print:border-slate-300">
           <div className="space-y-1">
             <p className="text-slate-500 text-xs font-bold uppercase tracking-wider print:text-slate-800">Média Gasta (Ticket Médio Global)</p>
-            <h3 className="text-3xl font-black text-slate-800 print:text-black">{formatCurrency(relatorioBI.ticketMedio)}</h3>
+            <h3 className="text-3xl font-black text-slate-800 print:text-black">{formatCurrency(faturamentoData.ticketMedio)}</h3>
           </div>
           <div className="bg-amber-50 text-amber-600 p-4 rounded-xl print:hidden"><TrendingUp size={32} /></div>
         </div>
@@ -303,8 +353,8 @@ export default function Reports() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {relatorioBI.clientesOrdenados.length > 0 ? (
-                  relatorioBI.clientesOrdenados.map((cliente, index) => {
+                {clientesOrdenadosAPI.length > 0 ? (
+                  clientesOrdenadosAPI.map((cliente, index) => {
                     const ticketLocal = cliente.qtdPedidos > 0 ? cliente.receita / cliente.qtdPedidos : 0;
                     return (
                       <tr key={index} className="hover:bg-slate-50 print:break-inside-avoid">
