@@ -22,6 +22,7 @@ public class Pedido
 
     protected Pedido() { }
 
+    /// <summary>Construtor padrão — pedido vinculado a um Cliente cadastrado (B2B) ou Consumidor Final.</summary>
     public Pedido(Guid empresaId, Guid clienteId, string codigoPedidoFormatado, string observacaoNegociacao)
     {
         Id = Guid.NewGuid();
@@ -30,7 +31,7 @@ public class Pedido
         CodigoPedidoFormatado = codigoPedidoFormatado;
         ObservacaoNegociacao = observacaoNegociacao;
 
-        Origem = OrigemPedido.APP;
+        Origem = OrigemPedido.MANUAL;
         StatusLogistica = StatusFilaLogistica.AguardandoValidacao;
         StatusErp = StatusIntegracaoErp.Pendente;
         ValorTotalPedido = 0;

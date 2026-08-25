@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using OrbeB2B.Crm.Application.Repositories;
 using OrbeB2B.Crm.Domain.Entities;
+using OrbeB2B.Crm.Domain.Enums;
 
 namespace OrbeB2B.Crm.Infrastructure.Data.Repositories;
 
@@ -35,5 +36,36 @@ public class ClienteWriteRepository : IClienteWriteRepository
     {
         _context.Clientes.Update(cliente);
         await _context.SaveChangesAsync();
+    }
+
+    public async Task<Cliente> ObterOuCriarConsumidorFinalAsync(Guid empresaId)
+    {
+        var documentoPadrao = "00000000000000";
+        var cliente = await _context.Clientes
+            .FirstOrDefaultAsync(c => c.EmpresaId == empresaId && c.Documento == documentoPadrao);
+            
+        if (cliente != null) return cliente;
+
+        var cidade = await _context.Cidades.FirstOrDefaultAsync();
+        var cidadeId = cidade?.Id ?? Guid.Empty;
+
+        cliente = new Cliente(
+            empresaId: empresaId,
+            cidadeId: cidadeId,
+            documento: documentoPadrao,
+            nomeOuRazaoSocial: "Consumidor Final",
+            nomeFantasia: "Consumidor Final",
+            tipoSegmento: TipoSegmentoCliente.B2C,
+            cep: "00000000",
+            logradouro: "Não Informado",
+            numero: "S/N",
+            bairro: "Não Informado"
+        );
+        cliente.AtualizarStatusCadastro(StatusCadastroCliente.Aprovado);
+
+        await _context.Clientes.AddAsync(cliente);
+        await _context.SaveChangesAsync();
+
+        return cliente;
     }
 }

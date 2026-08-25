@@ -13,12 +13,15 @@ public class PedidosController : ControllerBase
 {
     private readonly IPedidoReadRepository _readRepository;
     private readonly IPedidoWriteRepository _writeRepository;
+    private readonly IClienteWriteRepository _clienteWriteRepository;
 
     public PedidosController(IPedidoReadRepository readRepository,
-                             IPedidoWriteRepository writeRepository)
+                             IPedidoWriteRepository writeRepository,
+                             IClienteWriteRepository clienteWriteRepository)
     {
         _readRepository = readRepository;
         _writeRepository = writeRepository;
+        _clienteWriteRepository = clienteWriteRepository;
     }
 
     [HttpGet]
@@ -34,6 +37,22 @@ public class PedidosController : ControllerBase
         return Ok(pedidos);
     }
 
+    [HttpGet("{id:guid}")]
+    public async Task<IActionResult> ObterDetalhePedido(Guid id)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var pedido = await _readRepository.ObterDetalhePorIdAsync(id, empresaId);
+
+        if (pedido is null)
+            return NotFound(new { mensagem = "Pedido não encontrado." });
+
+        return Ok(pedido);
+    }
+
     [HttpPost]
     public async Task<IActionResult> CriarPedido([FromBody] PedidoCreateRequest request)
     {
@@ -47,12 +66,21 @@ public class PedidosController : ControllerBase
 
         var codigoPedido = Guid.NewGuid().ToString()[..8].ToUpper();
 
-        var novoPedido = new Pedido(
-            empresaId,
-            request.ClienteId,
-            codigoPedido,
-            request.ObservacaoNegociacao
-        );
+        // Se ClienteId for informado → pedido B2B / manual com cliente cadastrado
+        // Se ClienteId for null    → pedido de Pessoa Física (Consumidor Final)
+        Guid clienteIdParaVincular;
+
+        if (request.ClienteId.HasValue && request.ClienteId.Value != Guid.Empty)
+        {
+            clienteIdParaVincular = request.ClienteId.Value;
+        }
+        else
+        {
+            var consumidorFinal = await _clienteWriteRepository.ObterOuCriarConsumidorFinalAsync(empresaId);
+            clienteIdParaVincular = consumidorFinal.Id;
+        }
+
+        var novoPedido = new Pedido(empresaId, clienteIdParaVincular, codigoPedido, request.ObservacaoNegociacao ?? string.Empty);
 
         foreach (var item in request.Itens)
         {

@@ -2,13 +2,15 @@ import { useState, useMemo, useEffect } from 'react';
 import { 
   Search, Calendar, Eye, X, Printer, CheckCircle2, 
   ShoppingCart, ArrowUpDown, Plus, Factory, Store,
-  Trash2, AlertCircle, RefreshCw
+  Trash2, AlertCircle, RefreshCw, Loader2
 } from 'lucide-react';
 import api from '../../services/api';
-import { mockOrders } from '../../services/mockData';
+import { listarPedidosCRM, criarPedidoManualCRM, obterDetalhePedidoCRM, atualizarStatusPedidoLogistica } from '../../services/pedidosService';
 
 export default function GestaoOrcamentaria() {
-  const [pedidos, setPedidos] = useState(mockOrders);
+  const [pedidos, setPedidos] = useState([]);
+  const [loadingPedidos, setLoadingPedidos] = useState(true);
+  const [erroPedidos, setErroPedidos] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('TODOS');
   const [dataInicio, setDataInicio] = useState('');
@@ -17,9 +19,18 @@ export default function GestaoOrcamentaria() {
 
   const [isTriagemOpen, setIsTriagemOpen] = useState(false);
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null);
+  const [loadingTriagem, setLoadingTriagem] = useState(false);
+  const [erroTriagem, setErroTriagem]       = useState('');
   const [activeTabTriagem, setActiveTabTriagem] = useState('comercial'); 
+  
+  const [isConfirmacaoOpen, setIsConfirmacaoOpen] = useState(false);
+  const [isConfirmacaoConclusaoOpen, setIsConfirmacaoConclusaoOpen] = useState(false);
+  const [loadingAprovacao, setLoadingAprovacao] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   const [isManualOpen, setIsManualOpen] = useState(false);
+  const [modoPF, setModoPF]             = useState(false); // true = Pessoa Física sem cadastro
+  const [nomePF, setNomePF]             = useState('');    // nome livre do comprador PF
   const [buscaCliente, setBuscaCliente] = useState('');
   const [clienteSelecionado, setClienteSelecionado] = useState(null);
   const [showClienteDropdown, setShowClienteDropdown] = useState(false);
@@ -34,11 +45,36 @@ export default function GestaoOrcamentaria() {
   const [itensManuais, setItensManuais] = useState([]);
 
   // =========================================================================
+  // ESTADOS DO MODAL DE PEDIDO MANUAL
+  // =========================================================================
+  const [loadingSalvar, setLoadingSalvar] = useState(false);
+  const [erroManual, setErroManual]       = useState('');
+
+  // =========================================================================
   // OPÇÕES DO MODAL (CARREGADAS DA API)
   // =========================================================================
   const [clientesOptions, setClientesOptions] = useState([]);
   const [produtosOptions, setProdutosOptions] = useState([]);
 
+  // Carrega lista de pedidos reais da API
+  const carregarPedidos = async () => {
+    setLoadingPedidos(true);
+    setErroPedidos('');
+    try {
+      const data = await listarPedidosCRM();
+      setPedidos(data ?? []);
+    } catch (err) {
+      setErroPedidos(err.mensagemNormalizada ?? 'Erro ao carregar pedidos.');
+    } finally {
+      setLoadingPedidos(false);
+    }
+  };
+
+  useEffect(() => {
+    carregarPedidos();
+  }, []);
+
+  // Carrega clientes e produtos para o modal manual
   useEffect(() => {
     const fetchOptions = async () => {
       try {
@@ -69,7 +105,7 @@ export default function GestaoOrcamentaria() {
         setClientesOptions(cliMapped);
         setProdutosOptions(prodMapped);
       } catch (e) {
-        console.error("Erro ao carregar opções do modal manual:", e);
+        console.error('Erro ao carregar opções do modal manual:', e);
       }
     };
     fetchOptions();
@@ -122,9 +158,30 @@ export default function GestaoOrcamentaria() {
   
   const formatDate = (isoString) => {
     if (!isoString) return '-';
-    const date = new Date(isoString);
-    date.setMinutes(date.getMinutes() + date.getTimezoneOffset());
-    return date.toLocaleDateString('pt-BR');
+    // Converte direto para o fuso horário local, sem manipular minutos artificialmente
+    return new Date(isoString).toLocaleDateString('pt-BR');
+  };
+
+  const formatarStatusLogistica = (pedido) => {
+    if (!pedido) return { label: '—', color: 'text-slate-500 bg-slate-100 border-slate-200', value: 'desconhecido' };
+    
+    const rawStatus = pedido.statusLogistica ?? pedido.status_logistica ?? pedido.status;
+    const strStatus = String(rawStatus).toLowerCase();
+
+    // 0 = AguardandoValidacao
+    if (rawStatus === 0 || strStatus.includes('aguardando')) {
+      return { label: 'Aguardando Validação', color: 'text-amber-700 bg-amber-50 border-amber-200', value: 'aguardando' };
+    }
+    // 1 = Faturado, 2 = EmSeparacao (Tratados como Em Preparação na UI)
+    if (rawStatus === 1 || rawStatus === 2 || strStatus.includes('prepar') || strStatus.includes('separacao')) {
+      return { label: 'Em Preparação', color: 'text-indigo-700 bg-indigo-50 border-indigo-200', value: 'preparacao' };
+    }
+    // 3 = Enviado, 4 = Entregue
+    if (rawStatus === 3 || rawStatus === 4 || strStatus.includes('conclu') || strStatus.includes('entreg')) {
+      return { label: 'Concluído', color: 'text-emerald-700 bg-emerald-50 border-emerald-200', value: 'concluido' };
+    }
+    
+    return { label: '—', color: 'text-slate-500 bg-slate-100 border-slate-200', value: 'desconhecido' };
   };
 
   const handleSort = (key) => {
@@ -133,20 +190,28 @@ export default function GestaoOrcamentaria() {
     setSortConfig({ key, direction });
   };
 
+  // Helper para normalizar o campo de status vindo da API (camelCase ou snake_case)
+  const getStatus = (pedido) =>
+    pedido.statusLogistica || pedido.status_logistica || pedido.status || '';
+
+  const getOrigem = (pedido) =>
+    pedido.origem || pedido.Origem || 'APP';
+
   const processedOrders = useMemo(() => {
     let filtered = pedidos.filter(o => {
       const termo = (searchTerm || '').toLowerCase();
-      const clienteNome = (o.clienteNome || '').toLowerCase();
-      const codigo = (o.codigo_pedido_formatado || '').toLowerCase();
-      const dataOrigem = o.data_criacao;
+      const clienteNome = (o.clienteNome || o.nomeCliente || '').toLowerCase();
+      const codigo = (o.codigoPedidoFormatado || o.codigo_pedido_formatado || '').toLowerCase();
+      const dataOrigem = o.dataCriacao || o.data_criacao;
       const dataFormatada = dataOrigem ? new Date(dataOrigem).toLocaleDateString('pt-BR') : '';
 
       const matchesSearch = clienteNome.includes(termo) || codigo.includes(termo) || dataFormatada.includes(termo);
 
+      const statusAtual = getStatus(o);
       let matchesStatus = true;
-      if (statusFilter === 'AGUARDANDO') matchesStatus = o.status === 'aguardando_validacao';
-      if (statusFilter === 'PREPARACAO') matchesStatus = o.status === 'preparando';
-      if (statusFilter === 'CONCLUIDO') matchesStatus = o.status === 'concluido' || o.status === 'entregue';
+      if (statusFilter === 'AGUARDANDO') matchesStatus = statusAtual === 'aguardando_validacao' || statusAtual === 'AguardandoValidacao';
+      if (statusFilter === 'PREPARACAO') matchesStatus = statusAtual === 'preparando' || statusAtual === 'Preparando';
+      if (statusFilter === 'CONCLUIDO') matchesStatus = statusAtual === 'concluido' || statusAtual === 'entregue' || statusAtual === 'Concluido' || statusAtual === 'Entregue';
 
       const dataRegistro = dataOrigem ? new Date(dataOrigem).getTime() : 0;
       const limiteInicio = dataInicio ? new Date(dataInicio + 'T00:00:00').getTime() : 0;
@@ -158,8 +223,22 @@ export default function GestaoOrcamentaria() {
 
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        let valA = a[sortConfig.key] || '';
-        let valB = b[sortConfig.key] || '';
+        const campoA = sortConfig.key === 'clienteNome'
+          ? (a.clienteNome || a.nomeCliente || '')
+          : sortConfig.key === 'codigo_pedido_formatado'
+            ? (a.codigoPedidoFormatado || a.codigo_pedido_formatado || '')
+            : sortConfig.key === 'data_criacao'
+              ? (a.dataCriacao || a.data_criacao || '')
+              : (a[sortConfig.key] || '');
+        const campoB = sortConfig.key === 'clienteNome'
+          ? (b.clienteNome || b.nomeCliente || '')
+          : sortConfig.key === 'codigo_pedido_formatado'
+            ? (b.codigoPedidoFormatado || b.codigo_pedido_formatado || '')
+            : sortConfig.key === 'data_criacao'
+              ? (b.dataCriacao || b.data_criacao || '')
+              : (b[sortConfig.key] || '');
+        let valA = campoA;
+        let valB = campoB;
         if (sortConfig.key === 'data_criacao') {
           valA = valA ? new Date(valA).getTime() : 0;
           valB = valB ? new Date(valB).getTime() : 0;
@@ -225,49 +304,130 @@ export default function GestaoOrcamentaria() {
 
   const valorTotalManual = itensManuais.reduce((acc, item) => acc + (item.quantidade * item.precoUnitario), 0);
 
-  const handleSalvarPedidoManual = () => {
-    if (!clienteSelecionado || itensManuais.length === 0) {
-      alert("Selecione um cliente e adicione ao menos um produto.");
+  const handleSalvarPedidoManual = async () => {
+    // Validação: precisa de cliente B2B selecionado OU nome PF preenchido
+    if (!modoPF && !clienteSelecionado) {
+      setErroManual('Selecione um cliente ou ative o modo Pessoa Física.');
       return;
     }
-    const novoPedido = {
-      id: crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2),
-      empresa_id: "emp-01",
-      cliente_id: clienteSelecionado.id,
-      codigo_pedido_formatado: `MAN-${Math.floor(1000 + Math.random() * 9000)}`,
-      origem: "Manual",
-      status_logistica: "preparando",
-      status_erp: "aprovado",
-      status: "preparando",
-      valor_total_pedido: valorTotalManual,
-      observacao_negociacao: "Criado manualmente pelo operador.",
-      data_criacao: new Date().toISOString(),
-      clienteNome: clienteSelecionado.nome_fantasia || clienteSelecionado.nome_ou_razao_social,
-      resumo: `${itensManuais.length} iten(s) variados`,
-      itemsDetalhados: itensManuais
+    if (modoPF && !nomePF.trim()) {
+      setErroManual('Informe o nome do comprador.');
+      return;
+    }
+    if (itensManuais.length === 0) {
+      setErroManual('Adicione ao menos um produto.');
+      return;
+    }
+
+    setLoadingSalvar(true);
+    setErroManual('');
+
+    // Monta o payload exatamente como o C# espera.
+    // clienteId = null → C# usa o construtor de PF (sem JOIN com clientes).
+    const payload = {
+      clienteId: modoPF ? null : clienteSelecionado.id,
+      observacaoNegociacao: modoPF
+        ? `Venda PF - ${nomePF.trim()} | Criado manualmente pelo operador CRM.`
+        : 'Criado manualmente pelo operador CRM.',
+      itens: itensManuais.map(item => ({
+        produtoId: item.produtoId,
+        quantidade: Number(item.quantidade),
+        precoUnitario: Number(item.precoUnitario),
+        ehFabricacaoPropriaSnapshot: item.eh_fabricacao_propria,
+      })),
     };
-    setPedidos([novoPedido, ...pedidos]);
-    setIsManualOpen(false);
-    setItensManuais([]);
-    setClienteSelecionado(null);
-    setBuscaCliente('');
+
+    try {
+      await criarPedidoManualCRM(payload);
+
+      // Recarrega a lista para refletir o pedido criado no banco
+      const pedidosAtualizados = await listarPedidosCRM();
+      setPedidos(pedidosAtualizados ?? []);
+
+      // Reseta o modal
+      setIsManualOpen(false);
+      setItensManuais([]);
+      setClienteSelecionado(null);
+      setBuscaCliente('');
+      setModoPF(false);
+      setNomePF('');
+    } catch (err) {
+      setErroManual(err.mensagemNormalizada ?? 'Erro ao salvar pedido. Tente novamente.');
+    } finally {
+      setLoadingSalvar(false);
+    }
   };
 
-  const handleAbrirTriagem = (pedido) => {
-    setPedidoSelecionado(pedido);
-    setActiveTabTriagem('comercial');
+  const handleAbrirTriagem = async (pedidoResumo) => {
+    setErroTriagem('');
+    setLoadingTriagem(true);
     setIsTriagemOpen(true);
+    setPedidoSelecionado(null); // limpa o anterior enquanto carrega
+    setActiveTabTriagem('comercial');
+
+    try {
+      const detalhe = await obterDetalhePedidoCRM(pedidoResumo.id);
+      setPedidoSelecionado(detalhe);
+    } catch (err) {
+      setErroTriagem(err.mensagemNormalizada ?? 'Erro ao carregar detalhes do pedido.');
+    } finally {
+      setLoadingTriagem(false);
+    }
   };
 
   const handleAprovarOrcamento = () => {
-    if (window.confirm('Deseja aprovar este orçamento e enviá-lo para a fila de produção?')) {
-      setPedidos(prev => prev.map(p => 
-        p.id === pedidoSelecionado.id 
-          ? { ...p, status: 'preparando', status_logistica: 'preparando' } 
-          : p
-      ));
+    setIsConfirmacaoOpen(true);
+  };
+
+  const handleConfirmarAprovacao = async () => {
+    setLoadingAprovacao(true);
+    try {
+      // 2 = EmSeparacao / Em Preparação na API
+      await atualizarStatusPedidoLogistica(pedidoSelecionado.id, 2);
+      
+      // Recarrega a tabela de pedidos consultando a API novamente
+      await carregarPedidos();
+      
+      setIsConfirmacaoOpen(false);
       setIsTriagemOpen(false);
       setPedidoSelecionado(null);
+      
+      // Show Toast
+      setToastMessage('Orçamento aprovado e enviado para a fila de produção!');
+      setTimeout(() => setToastMessage(''), 4000);
+      
+    } catch (err) {
+      setErroTriagem(err.mensagemNormalizada ?? 'Erro ao aprovar o pedido. Tente novamente.');
+      setIsConfirmacaoOpen(false);
+    } finally {
+      setLoadingAprovacao(false);
+    }
+  };
+
+  const handleConcluirPedido = () => {
+    setIsConfirmacaoConclusaoOpen(true);
+  };
+
+  const handleConfirmarConclusao = async () => {
+    setLoadingAprovacao(true);
+    try {
+      // 4 = Entregue / Concluído na API
+      await atualizarStatusPedidoLogistica(pedidoSelecionado.id, 4);
+      
+      await carregarPedidos();
+      
+      setIsConfirmacaoConclusaoOpen(false);
+      setIsTriagemOpen(false);
+      setPedidoSelecionado(null);
+      
+      setToastMessage('Pedido marcado como Concluído!');
+      setTimeout(() => setToastMessage(''), 4000);
+      
+    } catch (err) {
+      setErroTriagem(err.mensagemNormalizada ?? 'Erro ao concluir o pedido. Tente novamente.');
+      setIsConfirmacaoConclusaoOpen(false);
+    } finally {
+      setLoadingAprovacao(false);
     }
   };
 
@@ -361,45 +521,77 @@ export default function GestaoOrcamentaria() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 text-sm">
-              {processedOrders.map(pedido => (
-                <tr key={pedido.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="p-4">
-                    <p className="font-bold text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded text-xs">{pedido.codigo_pedido_formatado}</p>
-                    <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{pedido.origem}</p>
-                  </td>
-                  <td className="p-4 font-bold text-slate-600 text-xs">
-                    {formatDate(pedido.data_criacao)}
-                  </td>
-                  <td className="p-4">
-                    <p className="font-bold text-slate-800 text-sm">{pedido.clienteNome}</p>
-                    <p className="text-xs font-medium text-slate-400 mt-0.5 truncate max-w-sm">{pedido.resumo}</p>
-                  </td>
-                  <td className="p-4 text-center">
-                    {pedido.status === 'aguardando_validacao' && (
-                      <span className="text-xs font-bold text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">Aguardando Validação</span>
-                    )}
-                    {pedido.status === 'preparando' && (
-                      <span className="text-xs font-bold text-indigo-700 bg-indigo-50 px-3 py-1 rounded-full border border-indigo-200">Em Preparação</span>
-                    )}
-                    {(pedido.status === 'concluido' || pedido.status === 'entregue') && (
-                      <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200">Concluído</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-center">
-                    <button 
-                      onClick={() => handleAbrirTriagem(pedido)}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 text-indigo-600 hover:bg-indigo-50 font-bold rounded-xl transition-colors text-xs cursor-pointer border border-transparent hover:border-indigo-100"
-                    >
-                      <Eye size={16} /> Triagem
-                    </button>
+
+              {/* Loading skeleton */}
+              {loadingPedidos && (
+                <tr>
+                  <td colSpan="5" className="p-12 text-center">
+                    <div className="flex flex-col items-center gap-3 text-slate-400">
+                      <Loader2 size={32} className="animate-spin text-amber-400" />
+                      <span className="text-sm font-semibold">Carregando pedidos...</span>
+                    </div>
                   </td>
                 </tr>
-              ))}
-              {processedOrders.length === 0 && (
+              )}
+
+              {/* Erro ao carregar */}
+              {!loadingPedidos && erroPedidos && (
                 <tr>
-                  <td colSpan="5" className="p-12 text-center text-slate-400 font-semibold flex flex-col items-center gap-3">
-                    <AlertCircle size={32} className="text-slate-300" />
-                    Nenhum orçamento encontrado com estes filtros.
+                  <td colSpan="5" className="p-8 text-center">
+                    <div className="inline-flex items-center gap-2 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-semibold">
+                      <AlertCircle size={18} />
+                      {erroPedidos}
+                    </div>
+                  </td>
+                </tr>
+              )}
+
+              {/* Dados reais */}
+              {!loadingPedidos && !erroPedidos && processedOrders.map(pedido => {
+                const codigo = pedido.codigoPedidoFormatado || pedido.codigo_pedido_formatado || '—';
+                const nomeCliente = pedido.clienteNome || pedido.nomeCliente || '—';
+                const resumo = pedido.resumo || '';
+                const dataOrigem = pedido.dataCriacao || pedido.data_criacao;
+                const origem = getOrigem(pedido);
+                const statusInfo = formatarStatusLogistica(pedido);
+
+                return (
+                  <tr key={pedido.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-4">
+                      <p className="font-bold text-slate-800 bg-slate-100 inline-block px-2 py-0.5 rounded text-xs">{codigo}</p>
+                      <p className="text-[11px] font-bold text-slate-400 mt-1 uppercase tracking-wider">{origem}</p>
+                    </td>
+                    <td className="p-4 font-bold text-slate-600 text-xs">
+                      {formatDate(dataOrigem)}
+                    </td>
+                    <td className="p-4">
+                      <p className="font-bold text-slate-800 text-sm">{nomeCliente}</p>
+                      {resumo && <p className="text-xs font-medium text-slate-400 mt-0.5 truncate max-w-sm">{resumo}</p>}
+                    </td>
+                    <td className="p-4 text-center">
+                      <span className={`text-xs font-bold px-3 py-1 rounded-full border ${statusInfo.color}`}>
+                        {statusInfo.label}
+                      </span>
+                    </td>
+                    <td className="p-4 text-center">
+                      <button 
+                        onClick={() => handleAbrirTriagem(pedido)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 text-indigo-600 hover:bg-indigo-50 font-bold rounded-xl transition-colors text-xs cursor-pointer border border-transparent hover:border-indigo-100"
+                      >
+                        <Eye size={16} /> Triagem
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+
+              {!loadingPedidos && !erroPedidos && processedOrders.length === 0 && (
+                <tr>
+                  <td colSpan="5" className="p-12 text-center text-slate-400 font-semibold">
+                    <div className="flex flex-col items-center gap-3">
+                      <AlertCircle size={32} className="text-slate-300" />
+                      Nenhum orçamento encontrado com estes filtros.
+                    </div>
                   </td>
                 </tr>
               )}
@@ -411,40 +603,46 @@ export default function GestaoOrcamentaria() {
       {/* ========================================================================= */}
       {/* MODAL 1: TRIAGEM (VISÃO COMERCIAL E LOGÍSTICA COM IMPRESSÃO ISOLADA) */}
       {/* ========================================================================= */}
-      {isTriagemOpen && pedidoSelecionado && (
+      {isTriagemOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm print:fixed print:inset-0 print:bg-white print:z-[99999] print:block">
           <div className="bg-white w-full max-w-3xl rounded-2xl shadow-xl overflow-hidden border border-slate-200 flex flex-col max-h-[90vh] print:max-h-none print:w-full print:h-full print:border-none print:shadow-none print:rounded-none">
-            
-            {/* CABEÇALHO DO MODAL E DO DOCUMENTO IMPRESSO */}
+
+            {/* CABEÇALHO */}
             <div className="p-6 border-b border-slate-200 flex justify-between items-start bg-slate-50 print:bg-white print:border-b-2 print:border-slate-800 print:pb-6 print:mb-6">
               <div>
                 <h1 className="hidden print:block text-2xl font-black text-amber-500 uppercase tracking-tight mb-6">
                   EMPRESA <span className="text-slate-800">A CASEIRA</span>
                 </h1>
                 <h2 className="text-2xl font-black text-slate-800 flex items-center gap-2">
-                  {activeTabTriagem === 'logistica' ? 'Ordem de Produção (OP) - ' : 'Orçamento '} 
-                  {pedidoSelecionado.codigo_pedido_formatado}
-                  <span className="text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md print:hidden">
-                    {pedidoSelecionado.origem}
-                  </span>
+                  {activeTabTriagem === 'logistica' ? 'Ordem de Produção (OP) - ' : 'Orçamento '}
+                  {loadingTriagem ? '...' : (pedidoSelecionado?.codigoPedidoFormatado || '—')}
+                  {pedidoSelecionado && (
+                    <span className="text-[10px] font-bold uppercase bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-md print:hidden">
+                      {pedidoSelecionado.origem}
+                    </span>
+                  )}
                 </h2>
-                <p className="text-slate-600 font-bold mt-1 text-lg print:text-base">{pedidoSelecionado.clienteNome}</p>
-                <p className="text-xs text-slate-400 mt-1">Data de Emissão: {formatDate(pedidoSelecionado.data_criacao)}</p>
+                <p className="text-slate-600 font-bold mt-1 text-lg print:text-base">
+                  {pedidoSelecionado?.nomeCliente ?? '—'}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Data de Emissão: {pedidoSelecionado ? formatDate(pedidoSelecionado.dataCriacao) : '—'}
+                </p>
               </div>
               <button onClick={() => setIsTriagemOpen(false)} className="p-2 text-slate-400 hover:bg-slate-200 rounded-full cursor-pointer transition-colors print:hidden">
                 <X size={20} />
               </button>
             </div>
 
-            {/* ABAS (OCULTAS NA IMPRESSÃO) */}
+            {/* ABAS */}
             <div className="flex border-b border-slate-200 px-6 pt-2 bg-slate-50 print:hidden">
-              <button 
+              <button
                 onClick={() => setActiveTabTriagem('comercial')}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${activeTabTriagem === 'comercial' ? 'border-amber-500 text-amber-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
               >
                 <Store size={16} /> Visão Comercial
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTabTriagem('logistica')}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-bold border-b-2 transition-colors cursor-pointer ${activeTabTriagem === 'logistica' ? 'border-indigo-500 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-700'}`}
               >
@@ -452,72 +650,99 @@ export default function GestaoOrcamentaria() {
               </button>
             </div>
 
-            {/* CORPO DA TABELA */}
+            {/* CORPO */}
             <div className="p-6 bg-white overflow-y-auto flex-1 print:overflow-visible">
-              <table className="w-full text-left border-collapse print:border print:border-slate-200">
-                <thead>
-                  <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-400 font-black print:bg-slate-100 print:text-slate-600">
-                    
-                    {/* CABEÇALHOS CONDICIONAIS */}
-                    {activeTabTriagem === 'comercial' ? (
-                      <>
-                        <th className="pb-3 print:p-3">Produto</th>
-                        <th className="pb-3 print:p-3 text-center">Qtd</th>
-                        <th className="pb-3 print:p-3 text-right">Preço Unit.</th>
-                        <th className="pb-3 print:p-3 text-right">Subtotal</th>
-                      </>
-                    ) : (
-                      <>
-                        <th className="pb-3 print:p-3">Produto Solicitado</th>
-                        <th className="pb-3 print:p-3 text-center">Unidades</th>
-                        <th className="pb-3 print:p-3 text-center">Mesas Necessárias</th>
-                        <th className="pb-3 print:p-3 text-center">Caixas a Fechar</th>
-                      </>
-                    )}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100 text-sm">
-                  {(pedidoSelecionado.itemsDetalhados || [])
-                    .filter(item => activeTabTriagem === 'comercial' || item.eh_fabricacao_propria)
-                    .map((item, index) => (
-                    <tr key={index} className="hover:bg-slate-50/50 print:border-b print:border-slate-100">
-                      
-                      {/* LINHAS CONDICIONAIS */}
-                      {activeTabTriagem === 'comercial' ? (
-                        <>
-                          <td className="py-3 font-bold text-slate-700 print:p-3">{item.nome}</td>
-                          <td className="py-3 text-center font-black text-slate-800 print:p-3 bg-slate-50 print:bg-transparent">{item.quantidade}</td>
-                          <td className="py-3 text-right text-slate-500 font-semibold print:p-3">{formatCurrency(item.precoUnitario)}</td>
-                          <td className="py-3 text-right font-black text-slate-800 print:p-3">{formatCurrency(item.quantidade * item.precoUnitario)}</td>
-                        </>
-                      ) : (
-                        <>
-                          <td className="py-3 font-bold text-slate-700 print:p-3">{item.nome}</td>
-                          <td className="py-3 text-center font-black text-slate-800 print:p-3">{item.quantidade} un</td>
-                          <td className="py-3 text-center font-bold text-indigo-600 print:p-3 bg-indigo-50/30 print:bg-transparent">
-                            {Math.ceil(item.quantidade / capacidadePorMesa)} mesa(s)
+
+              {/* Loading */}
+              {loadingTriagem && (
+                <div className="flex flex-col items-center gap-3 text-slate-400 py-12">
+                  <Loader2 size={32} className="animate-spin text-amber-400" />
+                  <span className="text-sm font-semibold">Carregando detalhes do pedido...</span>
+                </div>
+              )}
+
+              {/* Erro */}
+              {erroTriagem && (
+                <div className="flex items-center gap-2 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm font-semibold">
+                  <AlertCircle size={18} /> {erroTriagem}
+                </div>
+              )}
+
+              {/* Dados reais */}
+              {!loadingTriagem && !erroTriagem && pedidoSelecionado && (() => {
+                const itens = pedidoSelecionado.itens ?? [];
+                const itensFiltrados = activeTabTriagem === 'comercial'
+                  ? itens
+                  : itens.filter(i => i.ehFabricacaoPropria);
+
+                return (
+                  <table className="w-full text-left border-collapse print:border print:border-slate-200">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-[11px] uppercase tracking-wider text-slate-400 font-black print:bg-slate-100 print:text-slate-600">
+                        {activeTabTriagem === 'comercial' ? (
+                          <>
+                            <th className="pb-3 print:p-3">Produto</th>
+                            <th className="pb-3 print:p-3 text-center">Qtd</th>
+                            <th className="pb-3 print:p-3 text-right">Preço Unit.</th>
+                            <th className="pb-3 print:p-3 text-right">Subtotal</th>
+                          </>
+                        ) : (
+                          <>
+                            <th className="pb-3 print:p-3">Produto Solicitado</th>
+                            <th className="pb-3 print:p-3 text-center">Unidades</th>
+                            <th className="pb-3 print:p-3 text-center">Mesas Necessárias</th>
+                            <th className="pb-3 print:p-3 text-center">Caixas a Fechar</th>
+                          </>
+                        )}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 text-sm">
+                      {itensFiltrados.length === 0 && (
+                        <tr>
+                          <td colSpan="4" className="py-8 text-center text-slate-400 italic">
+                            Nenhum item {activeTabTriagem === 'logistica' ? 'de fabricação própria ' : ''}encontrado.
                           </td>
-                          <td className="py-3 text-center font-black text-slate-800 print:p-3">
-                            {calcularCaixas(item.nome, item.quantidade)} cx
-                          </td>
-                        </>
+                        </tr>
                       )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      {itensFiltrados.map((item, index) => (
+                        <tr key={item.id ?? index} className="hover:bg-slate-50/50 print:border-b print:border-slate-100">
+                          {activeTabTriagem === 'comercial' ? (
+                            <>
+                              <td className="py-3 font-bold text-slate-700 print:p-3">{item.nomeProduto}</td>
+                              <td className="py-3 text-center font-black text-slate-800 print:p-3 bg-slate-50 print:bg-transparent">{item.quantidade}</td>
+                              <td className="py-3 text-right text-slate-500 font-semibold print:p-3">{formatCurrency(item.precoUnitario)}</td>
+                              <td className="py-3 text-right font-black text-slate-800 print:p-3">{formatCurrency(item.quantidade * item.precoUnitario)}</td>
+                            </>
+                          ) : (
+                            <>
+                              <td className="py-3 font-bold text-slate-700 print:p-3">{item.nomeProduto}</td>
+                              <td className="py-3 text-center font-black text-slate-800 print:p-3">{item.quantidade} un</td>
+                              <td className="py-3 text-center font-bold text-indigo-600 print:p-3 bg-indigo-50/30 print:bg-transparent">
+                                {Math.ceil(item.quantidade / capacidadePorMesa)} mesa(s)
+                              </td>
+                              <td className="py-3 text-center font-black text-slate-800 print:p-3">
+                                {calcularCaixas(item.nomeProduto, item.quantidade)} cx
+                              </td>
+                            </>
+                          )}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                );
+              })()}
 
               {/* TOTAL (APENAS COMERCIAL) */}
-              {activeTabTriagem === 'comercial' && (
+              {!loadingTriagem && activeTabTriagem === 'comercial' && pedidoSelecionado && (
                 <div className="mt-4 pt-4 flex justify-end">
                   <div className="text-right bg-slate-50 px-8 py-4 rounded-xl border border-slate-200 print:border-none print:p-0 print:mt-6">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Valor Total</p>
-                    <p className="text-3xl font-black text-amber-500">{formatCurrency(pedidoSelecionado.valor_total_pedido)}</p>
+                    <p className="text-3xl font-black text-amber-500">{formatCurrency(pedidoSelecionado.valorTotalPedido)}</p>
                   </div>
                 </div>
               )}
 
-              {/* ASSINATURAS (APENAS LOGÍSTICA / IMPRESSÃO) */}
+              {/* ASSINATURAS (LOGÍSTICA / IMPRESSÃO) */}
               {activeTabTriagem === 'logistica' && (
                 <div className="hidden print:flex justify-between items-end mt-24 px-12">
                   <div className="text-center w-64">
@@ -532,38 +757,45 @@ export default function GestaoOrcamentaria() {
               )}
             </div>
 
-            {/* RODAPÉ DO MODAL (OCULTO NA IMPRESSÃO) */}
+            {/* RODAPÉ */}
             <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-between items-center rounded-b-2xl print:hidden">
-              
               <div className="flex gap-3">
-                <button 
-                  onClick={() => {
-                    setActiveTabTriagem('logistica');
-                    setTimeout(() => window.print(), 300);
-                  }}
+                <button
+                  onClick={() => { setActiveTabTriagem('logistica'); setTimeout(() => window.print(), 300); }}
                   className="flex items-center gap-2 text-indigo-700 bg-indigo-50 hover:bg-indigo-100 font-bold text-sm transition-colors cursor-pointer px-4 py-2 rounded-xl border border-indigo-200 shadow-sm"
                 >
                   <Printer size={18} /> Imprimir OP (Fábrica)
                 </button>
-
-                <button 
-                  onClick={() => {
-                    setActiveTabTriagem('comercial');
-                    setTimeout(() => window.print(), 300);
-                  }}
+                <button
+                  onClick={() => { setActiveTabTriagem('comercial'); setTimeout(() => window.print(), 300); }}
                   className="flex items-center gap-2 text-emerald-700 bg-emerald-50 hover:bg-emerald-100 font-bold text-sm transition-colors cursor-pointer px-4 py-2 rounded-xl border border-emerald-200 shadow-sm"
                 >
                   <Printer size={18} /> Imprimir OP Total
                 </button>
               </div>
-              
-              {pedidoSelecionado.status === 'aguardando_validacao' && (
+
+              {pedidoSelecionado && formatarStatusLogistica(pedidoSelecionado).value === 'aguardando' && (
                 <button 
                   onClick={handleAprovarOrcamento}
                   className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
                 >
                   <CheckCircle2 size={20} /> Aprovar Orçamento
                 </button>
+              )}
+
+              {pedidoSelecionado && formatarStatusLogistica(pedidoSelecionado).value === 'preparacao' && (
+                <button 
+                  onClick={handleConcluirPedido}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+                >
+                  <CheckCircle2 size={20} /> Concluir Separação
+                </button>
+              )}
+
+              {pedidoSelecionado && formatarStatusLogistica(pedidoSelecionado).value === 'concluido' && (
+                <div className="px-6 py-2.5 bg-slate-100 text-slate-500 font-bold rounded-xl border border-slate-200 flex items-center gap-2">
+                  <CheckCircle2 size={20} /> Pedido Concluído
+                </div>
               )}
             </div>
 
@@ -590,8 +822,42 @@ export default function GestaoOrcamentaria() {
             <div className="p-6 bg-white overflow-y-auto flex-1 space-y-6">
               
               <div className="relative">
-                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">1. Selecionar Cliente</label>
-                {clienteSelecionado ? (
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider">1. Selecionar Cliente</label>
+                  {/* Toggle Pessoa Física */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setModoPF(prev => !prev);
+                      setClienteSelecionado(null);
+                      setBuscaCliente('');
+                      setNomePF('');
+                    }}
+                    className={`flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                      modoPF
+                        ? 'bg-orange-500 text-white border-orange-600'
+                        : 'bg-white text-slate-600 border-slate-300 hover:border-orange-400'
+                    }`}
+                  >
+                    👤 {modoPF ? 'Modo: Pessoa Física' : 'Pessoa Física (sem cadastro)'}
+                  </button>
+                </div>
+
+                {/* Modo Pessoa Física: campo de nome livre */}
+                {modoPF ? (
+                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-xl space-y-3">
+                    <p className="text-xs text-orange-700 font-semibold">
+                      ⚠️ Pedido de Pessoa Física — não vinculado a nenhum cliente cadastrado. O nome ficará registrado na observação.
+                    </p>
+                    <input
+                      type="text"
+                      placeholder="Nome completo do comprador..."
+                      className="w-full p-3 border border-orange-300 rounded-xl outline-none focus:border-orange-500 text-sm font-medium bg-white"
+                      value={nomePF}
+                      onChange={e => setNomePF(e.target.value)}
+                    />
+                  </div>
+                ) : clienteSelecionado ? (
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
                     <div>
                       <p className="font-bold text-emerald-800">{clienteSelecionado.nome_fantasia || clienteSelecionado.nome_ou_razao_social}</p>
@@ -794,20 +1060,114 @@ export default function GestaoOrcamentaria() {
               </div>
             </div>
 
-            <div className="p-6 border-t border-slate-200 bg-slate-50 flex justify-between items-center rounded-b-2xl">
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Previsto:</span>
-                <span className="text-3xl font-black text-amber-500">{formatCurrency(valorTotalManual)}</span>
+            <div className="p-6 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 rounded-b-2xl">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-bold text-slate-400 uppercase tracking-wider">Total Previsto:</span>
+                  <span className="text-3xl font-black text-amber-500">{formatCurrency(valorTotalManual)}</span>
+                </div>
+                {erroManual && (
+                  <p className="text-xs text-red-500 bg-red-50 border border-red-200 rounded-lg px-3 py-1.5 flex items-center gap-1.5">
+                    <AlertCircle size={14} /> {erroManual}
+                  </p>
+                )}
               </div>
               <button 
                 onClick={handleSalvarPedidoManual}
-                className="px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors shadow-sm cursor-pointer"
+                disabled={loadingSalvar}
+                className="flex items-center gap-2 px-8 py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl transition-colors shadow-sm cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                Salvar Pedido Manual
+                {loadingSalvar ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : 'Salvar Pedido Manual'}
               </button>
             </div>
 
           </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 3: CONFIRMAÇÃO DE APROVAÇÃO */}
+      {/* ========================================================================= */}
+      {isConfirmacaoOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm print:hidden">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+            <div className="p-6 text-center space-y-4">
+              <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <CheckCircle2 size={32} />
+              </div>
+              <h2 className="text-xl font-black text-slate-800">Confirmar Aprovação</h2>
+              <p className="text-slate-500 font-medium text-sm">
+                Tem certeza que deseja aprovar o orçamento <strong className="text-slate-700">{pedidoSelecionado?.codigoPedidoFormatado}</strong> e enviá-lo para a fila de produção (Fábrica)?
+              </p>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setIsConfirmacaoOpen(false)}
+                disabled={loadingAprovacao}
+                className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmarAprovacao}
+                disabled={loadingAprovacao}
+                className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-400 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+              >
+                {loadingAprovacao ? (
+                  <><Loader2 size={18} className="animate-spin" /> Aprovando...</>
+                ) : (
+                  'Confirmar Aprovação'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: CONFIRMAÇÃO DE CONCLUSÃO */}
+      {/* ========================================================================= */}
+      {isConfirmacaoConclusaoOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm print:hidden">
+          <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+            <div className="p-6 text-center space-y-4">
+              <div className="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-2 shadow-sm">
+                <CheckCircle2 size={32} />
+              </div>
+              <h2 className="text-xl font-black text-slate-800">Confirmar Conclusão</h2>
+              <p className="text-slate-500 font-medium text-sm">
+                Tem certeza que deseja marcar o pedido <strong className="text-slate-700">{pedidoSelecionado?.codigoPedidoFormatado}</strong> como Concluído / Entregue?
+              </p>
+            </div>
+            <div className="p-4 bg-slate-50 border-t border-slate-200 flex justify-end gap-3">
+              <button
+                onClick={() => setIsConfirmacaoConclusaoOpen(false)}
+                disabled={loadingAprovacao}
+                className="px-5 py-2.5 text-slate-600 font-bold hover:bg-slate-200 rounded-xl transition-colors cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmarConclusao}
+                disabled={loadingAprovacao}
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-bold rounded-xl transition-colors shadow-sm flex items-center gap-2 cursor-pointer"
+              >
+                {loadingAprovacao ? (
+                  <><Loader2 size={18} className="animate-spin" /> Concluindo...</>
+                ) : (
+                  'Confirmar Conclusão'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* TOAST DE SUCESSO (SNACKBAR) */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 z-[100] bg-emerald-600 text-white px-6 py-4 rounded-2xl shadow-lg border border-emerald-700 flex items-center gap-3 animate-bounce">
+          <CheckCircle2 size={24} />
+          <span className="font-bold">{toastMessage}</span>
         </div>
       )}
 

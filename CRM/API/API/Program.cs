@@ -125,7 +125,15 @@ builder.Services.AddSwaggerGen(c =>
 // HttpClient para integração com ViaCEP
 builder.Services.AddScoped<IViaCepService, ViaCepService>();
 builder.Services.AddHttpClient<ViaCepService>();
-
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("PermitirFrontEnd", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 var app = builder.Build();
 
 // === CONFIGURAÇÃO DO PIPELINE HTTP ===
@@ -138,7 +146,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
+app.UseCors("PermitirFrontEnd");
 app.UseHttpsRedirection();
 app.UseAuthentication(); // usuário
 app.UseAuthorization();  // Verifica O QUE pode acessar (Perfil)

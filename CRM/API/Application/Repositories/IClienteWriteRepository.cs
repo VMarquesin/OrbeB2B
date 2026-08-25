@@ -8,4 +8,5 @@ public interface IClienteWriteRepository
     Task CadastrarClienteAsync(Cliente cliente);
     Task<Cliente?> ObterPorIdEEmpresaAsync(Guid id, Guid empresaId);
     Task AtualizarAsync(Cliente cliente);
+    Task<Cliente> ObterOuCriarConsumidorFinalAsync(Guid empresaId);
 }
