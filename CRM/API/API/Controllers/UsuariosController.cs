@@ -26,7 +26,7 @@ public class UsuariosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> ListarUsuariosDaEmpresa()
+    public async Task<IActionResult> ListarUsuariosDaEmpresa([FromQuery] bool incluirInativos = false)
     {
         // O ID é pego no Token JWT.
         var tenantIdClaim = User.FindFirst("TenantId")?.Value;
@@ -34,7 +34,7 @@ public class UsuariosController : ControllerBase
         if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
             return Forbid("Sua sessão não possui uma empresa atrelada.");
             
-        var usuarios = await _readRepository.ObterTodosPorEmpresaAsync(empresaId);
+        var usuarios = await _readRepository.ObterTodosPorEmpresaAsync(empresaId, incluirInativos);
 
         return Ok(usuarios);
     }
@@ -72,7 +72,8 @@ public class UsuariosController : ControllerBase
 
         await _writeRepository.CadastrarUsuarioDaEmpresaAsync(novoUsuario, novoVinculo);
 
-        return StatusCode(201, new { mensagem = "Usuário criado com sucesso!" });
+        const string senhaTemporaria = "Mudar@123";
+        return StatusCode(201, new { mensagem = "Usuário criado com sucesso!", senhaTemporaria });
     }
 
     [HttpPut("{id:guid}")]

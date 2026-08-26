@@ -208,10 +208,11 @@ export default function GestaoOrcamentaria() {
       const matchesSearch = clienteNome.includes(termo) || codigo.includes(termo) || dataFormatada.includes(termo);
 
       const statusAtual = getStatus(o);
+      const statusInfo = formatarStatusLogistica(o);
       let matchesStatus = true;
-      if (statusFilter === 'AGUARDANDO') matchesStatus = statusAtual === 'aguardando_validacao' || statusAtual === 'AguardandoValidacao';
-      if (statusFilter === 'PREPARACAO') matchesStatus = statusAtual === 'preparando' || statusAtual === 'Preparando';
-      if (statusFilter === 'CONCLUIDO') matchesStatus = statusAtual === 'concluido' || statusAtual === 'entregue' || statusAtual === 'Concluido' || statusAtual === 'Entregue';
+      if (statusFilter === 'AGUARDANDO') matchesStatus = statusInfo.value === 'aguardando';
+      if (statusFilter === 'PREPARACAO') matchesStatus = statusInfo.value === 'preparacao';
+      if (statusFilter === 'CONCLUIDO')  matchesStatus = statusInfo.value === 'concluido';
 
       const dataRegistro = dataOrigem ? new Date(dataOrigem).getTime() : 0;
       const limiteInicio = dataInicio ? new Date(dataInicio + 'T00:00:00').getTime() : 0;

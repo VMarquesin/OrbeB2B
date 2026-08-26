@@ -6,5 +6,8 @@ public record UsuarioListResponse(
     string Nome, 
     string Email, 
     string NomePerfil, 
-    bool EstaAtivo
+    bool EstaAtivo,
+    string Cargo,
+    string Departamento,
+    DateTime? DataAdmissao
 );

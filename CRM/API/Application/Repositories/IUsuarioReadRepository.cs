@@ -4,5 +4,5 @@ namespace OrbeB2B.Crm.Application.Repositories;
 
 public interface IUsuarioReadRepository
 {
-    Task<IEnumerable<UsuarioListResponse>> ObterTodosPorEmpresaAsync(Guid empresaId);
+    Task<IEnumerable<UsuarioListResponse>> ObterTodosPorEmpresaAsync(Guid empresaId, bool incluirInativos = false);
 }

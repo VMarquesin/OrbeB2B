@@ -8,8 +8,9 @@ public record TopProdutoItem(string ProdutoDescricao, int QtdVendida);
 
 public record DashboardCardsResponse(
     decimal ReceitaValidada,
-    int ValidacaoPendenteQtd,
-    int CarteiraAtivaQtd
+    long ValidacaoPendenteQtd,
+    long CarteiraAtivaQtd,
+    long RiscoEvasaoQtd
 );
 
 // --- Gráfico receita própria vs terceiros ---
