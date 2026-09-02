@@ -93,7 +93,8 @@
                     "http://localhost:5173",
                     "http://localhost:5174",
                     "https://localhost:5173",
-                    "https://localhost:5174"
+                    "https://localhost:5174", 
+                    "https://orbe-b2-fduztqhsx-viniciusmarquesin16022003-8127s-projects.vercel.app"
                 )
                 .AllowAnyHeader()
                 .AllowAnyMethod();
