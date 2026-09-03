@@ -130,6 +130,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("PermitirFrontEnd", policy =>
     {
         policy.WithOrigins("http://localhost:5173", 
+         "http://localhost:5174",
         "https://orbe-b2-b-zsua.vercel.app")
               .AllowAnyHeader()
               .AllowAnyMethod();

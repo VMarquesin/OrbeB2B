@@ -204,7 +204,7 @@ export default function GestaoProdutos() {
       }
 
       setIsModalOpen(false);
-      carregarProdutos();
+      fetchProdutos();
     } catch (erro) {
       console.error("Erro ao salvar produto:", erro);
       const msg = erro.response?.data?.mensagem || erro.response?.data?.errors;
@@ -236,7 +236,7 @@ export default function GestaoProdutos() {
           console.error("Erro ao alterar status:", error);
           showToast("Erro ao alterar o status do produto.", "error");
         } finally {
-          carregarProdutos();
+          fetchProdutos();
         }
       }
     });
@@ -514,7 +514,7 @@ export default function GestaoProdutos() {
                   >
                     <option value="">Selecione...</option>
                     {(fornecedoresDisponiveis || []).map(forn => (
-                      <option key={forn.id} value={forn.id}>{forn.nome_ou_razao_social || forn.nomeOuRazaoSocial}</option>
+                      <option key={forn.id} value={forn.id}>{forn.razaoSocial || forn.nome_ou_razao_social || forn.nomeOuRazaoSocial}</option>
                     ))}
                     {/* Fallback caso não venham fornecedores */}
                     {(!fornecedoresDisponiveis || fornecedoresDisponiveis.length === 0) && !formData.eh_fabricacao_propria && (
