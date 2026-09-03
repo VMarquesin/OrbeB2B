@@ -19,7 +19,7 @@ export const USER_KEY  = '@orbeb2b:user';
 // Instância configurada
 // ============================================================
 const api = axios.create({
-  baseURL: 'https://orbeb2b-api-autoatendimento.onrender.com',
+  baseURL: 'https://orbeb2b-api-autoatendimento.onrender.com',  
   headers: {
     'Content-Type': 'application/json',
   },

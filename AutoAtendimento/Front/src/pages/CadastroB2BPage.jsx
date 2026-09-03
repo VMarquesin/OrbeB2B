@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Store, Building2, User, Mail, Phone, Lock, Eye, EyeOff, UserPlus, ShieldCheck, CheckCircle2 } from 'lucide-react';
 import logo from '../assets/logo.jpg';
 import { registrar } from '../services/cadastroService';
+import api from '../services/api';
 
 export default function CadastroB2BPage() {
   const navigate = useNavigate();
@@ -10,21 +11,24 @@ export default function CadastroB2BPage() {
   const [loading, setLoading] = useState(false);
   const [erroApi, setErroApi] = useState('');
   const [form, setForm] = useState({
-    customerType: "",
-    company: '',
-    fantasyName: '',
-    cnpj: '',
-    name: '',
-    email: '',
-    phone: '',
-    cep: '',
-    logradouro: '',
-    numero: '',
-    bairro: '',
-    password: '',
-    confirmPassword: '',
-    acceptedTerms: false,
-  });
+  customerType: "",
+  company: '',
+  fantasyName: '',
+  cnpj: '',
+  name: '',
+  email: '',
+  phone: '',
+  cep: '',
+  logradouro: '',
+  numero: '',
+  bairro: '',
+  uf: '',
+  cidadeNome: '',
+  cidadeId: '',
+  password: '',
+  confirmPassword: '',
+  acceptedTerms: false,
+});
   const [errors, setErrors] = useState({});
   const [showModal, setShowModal] = useState(false);
 
@@ -41,6 +45,57 @@ export default function CadastroB2BPage() {
       [name]: newValue,
     });
   }
+
+async function handleBuscarCep(cep) {
+  const cleanCep = cep.replace(/\D/g, '');
+
+  setErroApi('');
+
+  if (cleanCep.length !== 8) {
+    return;
+  }
+
+  try {
+    const res = await api.get(`/api/Ceps/${cleanCep}`);
+
+    setForm((prev) => ({
+      ...prev,
+      cep: cleanCep,
+      logradouro: res.data.logradouro || '',
+      bairro: res.data.bairro || '',
+      uf: res.data.uf || '',
+      cidadeNome: res.data.cidadeNome || '',
+      cidadeId: res.data.cidadeId || '',
+    }));
+
+    setErrors((prev) => ({
+      ...prev,
+      cep: '',
+    }));
+
+  } catch (err) {
+
+    setForm((prev) => ({
+      ...prev,
+      cidadeId: '',
+      uf: '',
+      cidadeNome: '',
+      logradouro: '',
+      bairro: '',
+    }));
+
+    const mensagem =
+      err.response?.data?.mensagem ||
+      'Não foi possível consultar o CEP. Verifique o CEP informado.';
+
+    setErroApi(mensagem);
+
+    setErrors((prev) => ({
+      ...prev,
+      cep: 'Não foi possível localizar este CEP.',
+    }));
+  }
+}
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -76,6 +131,12 @@ export default function CadastroB2BPage() {
       newErrors.phone = "Telefone inválido.";
     }
 
+    if (!form.cep.trim()) {
+      newErrors.cep = "Informe o CEP.";
+    } else if (form.cep.length !== 8) {
+      newErrors.cep = "CEP inválido. Deve conter 8 dígitos.";
+    }
+
     if (!form.password.trim()) {
       newErrors.password = "Informe a senha.";
     }
@@ -95,6 +156,9 @@ export default function CadastroB2BPage() {
     if (!form.acceptedTerms) {
       newErrors.acceptedTerms = "Aceite os Termos de Uso.";
     }
+    if (!form.cidadeId) {
+      newErrors.cep = "Informe um CEP válido para identificar a cidade.";
+    }
 
     setErrors(newErrors);
 
@@ -105,7 +169,9 @@ export default function CadastroB2BPage() {
     // ── Integração com a API real ──────────────────────────────────────────
     setLoading(true);
     try {
+
       await registrar({
+        cidadeId: form.cidadeId,
         cnpj: form.cnpj,           // já limpo (só dígitos)
         razaoSocial: form.company,
         nomeFantasia: form.fantasyName || form.company,
@@ -339,6 +405,53 @@ export default function CadastroB2BPage() {
                   error={errors.cnpj}
                 />
               </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
+                  CEP
+                </label>
+
+                <Input
+                  icon={<Building2 />} 
+                  name="cep" 
+                  placeholder="00000-000" 
+                  value={form.cep} 
+                  onChange={handleChange}
+                  onBlur={(e) => handleBuscarCep(e.target.value)}
+                  error={errors.cep} 
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
+                    Estado
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.uf}
+                    disabled
+                    placeholder="Preenchido pelo CEP"
+                    className="w-full py-3 px-3 rounded-xl bg-stone-100 border border-stone-200 text-sm text-stone-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-stone-600 mb-1.5 uppercase tracking-wide">
+                    Cidade
+                  </label>
+
+                  <input
+                    type="text"
+                    value={form.cidadeNome}
+                    disabled
+                    placeholder="Preenchido pelo CEP"
+                    className="w-full py-3 px-3 rounded-xl bg-stone-100 border border-stone-200 text-sm text-stone-500"
+                  />
+                </div>
+              </div>
+
               <div className="pt-4 border-t border-stone-100 mb-2">
                 <h2 className="text-sm font-bold text-stone-800">
                   Dados do responsável
@@ -634,6 +747,7 @@ function Input({
   name,
   value,
   onChange,
+  onBlur,
   placeholder,
   error
 }) {
@@ -655,6 +769,7 @@ function Input({
           name={name}
           value={value}
           onChange={onChange}
+          onBlur={onBlur}
           placeholder={placeholder}
           className={`
             w-full

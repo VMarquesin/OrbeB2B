@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Cria a instância do Axios apontando para a variável de ambiente
 const api = axios.create({
-  baseURL: 'https://orbeb2b-api.onrender.com',
+baseURL: 'https://orbeb2b-api.onrender.com',
   timeout: 10000, // Cancela a requisição se demorar mais de 10 segundos
   headers: {
     'Content-Type': 'application/json',

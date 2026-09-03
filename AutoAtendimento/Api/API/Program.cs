@@ -74,8 +74,10 @@
     builder.Services.AddScoped<IMeusPedidosReadRepository, MeusPedidosReadRepository>();
     builder.Services.AddScoped<ITokenClienteService, TokenClienteService>();
     builder.Services.AddScoped<IEmailService, ConsoleEmailService>();
+    builder.Services.AddHttpClient();
+    builder.Services.AddScoped<OrbeB2B.AutoAtendimento.Api.Services.ViaCepService>();
 
-    // Shared Kernel: reutiliza repositórios de escrita do CRM
+    // Shared Kernel: reutiliza repositórios de escrita do CRM  
     builder.Services.AddScoped<IPedidoWriteRepository, PedidoWriteRepository>();
 
     // JWT Bearer
