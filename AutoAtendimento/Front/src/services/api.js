@@ -19,12 +19,13 @@ export const USER_KEY  = '@orbeb2b:user';
 // Instância configurada
 // ============================================================
 const api = axios.create({
-  baseURL: 'https://orbeb2b-api-autoatendimento.onrender.com',  
+  // Em dev usa .env (localhost), em produção usa .env.production (Render)
+  baseURL: import.meta.env.VITE_API_URL ?? 'https://orbeb2b-api-autoatendimento.onrender.com',
   headers: {
     'Content-Type': 'application/json',
   },
-  // Timeout razoável para evitar requests pendurados
   timeout: 15000,
+  withCredentials: false,
 });
 
 // ============================================================

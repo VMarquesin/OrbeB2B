@@ -1,44 +1,68 @@
 import axios from 'axios';
 
-// Cria a instância do Axios apontando para a variável de ambiente
+/**
+ * api.js — Cliente HTTP central do CRM
+ *
+ * Em desenvolvimento: aponta para .env → VITE_API_URL=http://localhost:5291
+ * Em produção (Vercel): aponta para .env.production → VITE_API_URL=https://orbeb2b-api.onrender.com
+ */
+
+export const TOKEN_KEY  = 'caseira_token';
+export const USER_KEY   = 'caseira_user';
+
+// ============================================================
+// Instância configurada com variável de ambiente
+// ============================================================
 const api = axios.create({
-baseURL: 'https://orbeb2b-api.onrender.com',
-  timeout: 10000, // Cancela a requisição se demorar mais de 10 segundos
+  // O Vite substitui import.meta.env.VITE_API_URL em build time.
+  // .env (dev)        → http://localhost:5291
+  // .env.production   → https://orbeb2b-api.onrender.com
+  baseURL: import.meta.env.VITE_API_URL ?? 'https://orbeb2b-api.onrender.com',
+  timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
-  }
+  },
+  withCredentials: false,
 });
 
-// INTERCEPTOR DE REQUISIÇÃO: Antes de enviar qualquer dado pro Back-end...
+// ============================================================
+// REQUEST INTERCEPTOR — Injeta o token JWT se disponível
+// ============================================================
 api.interceptors.request.use(
   (config) => {
-    // Busca o token de segurança salvo no navegador (quando o usuário loga)
-    const token = localStorage.getItem('caseira_token');
-    
-    // Se existir token, injeta no cabeçalho de autorização (Padrão Bearer JWT)
+    const token = localStorage.getItem(TOKEN_KEY);
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// INTERCEPTOR DE RESPOSTA: Quando o Back-end responde...
+// ============================================================
+// RESPONSE INTERCEPTOR — Trata 401 e normaliza erros
+// ============================================================
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
-    // Se o back-end disser que o token expirou (Erro 401 Não Autorizado)
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('caseira_token');
-      localStorage.removeItem('caseira_user');
-      // Força a pessoa a ir para a tela de login
-      window.location.href = '/login'; 
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      if (window.location.pathname !== '/login') {
+        window.location.href = '/login';
+      }
     }
+
+    // Normaliza o erro para o padrão ProblemDetails (RFC 7807)
+    const data = error.response?.data;
+    const mensagem =
+      data?.detail    ||
+      data?.mensagem  ||
+      data?.title     ||
+      error.message   ||
+      'Erro desconhecido. Tente novamente.';
+
+    error.mensagemNormalizada = mensagem;
     return Promise.reject(error);
   }
 );

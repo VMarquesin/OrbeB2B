@@ -129,11 +129,22 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirFrontEnd", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", 
-         "http://localhost:5174",
-        "https://orbe-b2-b-zsua.vercel.app")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy
+            .WithOrigins(
+                // Desenvolvimento local
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "https://localhost:5173",
+                "https://localhost:5174",
+                // Produção — domínio estável do CRM na Vercel
+                "https://orbe-b2-b-zsua.vercel.app",
+                // Produção — domínio estável do AutoAtendimento na Vercel
+                "https://orbe-b2-b.vercel.app"
+            )
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        // Nota: AllowCredentials() só é necessário se usar cookies de sessão.
+        // Para JWT via header Authorization, NÃO é necessário e pode causar erros CORS.
     });
 });
 var app = builder.Build();
@@ -148,10 +159,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors("PermitirFrontEnd");
-app.UseHttpsRedirection();
-app.UseAuthentication(); // usuário
-app.UseAuthorization();  // Verifica O QUE pode acessar (Perfil)
-app.MapControllers(); 
+app.UseCors("PermitirFrontEnd");         // CORS deve ser o primeiro após middlewares de diagnóstico
+if (app.Environment.IsDevelopment())
+    app.UseHttpsRedirection();            // O Render gerencia TLS externamente — não redirecionar em produção
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
 
 app.Run();
