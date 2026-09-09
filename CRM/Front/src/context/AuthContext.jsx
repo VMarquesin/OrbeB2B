@@ -22,7 +22,13 @@ export function AuthProvider({ children }) {
       // 2. Extrai o token e os dados (tenta 'token' ou 'accessToken' dependendo do C#)
       const token = resposta.data.token || resposta.data.accessToken || resposta.data;
       // Se a API não retornar um objeto "usuario", podemos criar um genérico para o state
-      const usuario = resposta.data.usuario || { email: email, role: 'Administrador' };
+      const usuario = {
+        id: resposta.data.usuarioId,
+        nome: resposta.data.nome,
+        email: resposta.data.email,
+        empresaId: resposta.data.empresaId,
+        role: resposta.data.perfil
+      };
 
       // 3. Salva o Token no navegador para o Axios usar nas próximas requisições
       if (token && typeof token === 'string') {

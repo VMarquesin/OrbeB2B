@@ -97,9 +97,9 @@ export default function GestaoOrcamentaria() {
           descricao: p.descricao || p.Descricao || '',
           codigo_comercial: p.codigo_comercial || p.CodigoComercial || p.codigoComercial || '',
           eh_fabricacao_propria: p.eh_fabricacao_propria ?? p.EhFabricacaoPropria ?? true,
-          preco_atacado: p.preco_atacado ?? p.PrecoAtacado ?? 0,
-          preco_lojista: p.preco_lojista ?? p.PrecoLojista ?? 0,
-          preco_varejo: p.preco_varejo ?? p.PrecoVarejo ?? 0
+          preco_atacado: p.preco_atacado ?? p.precoAtacado ?? p.PrecoAtacado ?? 0,
+          preco_lojista: p.preco_lojista ?? p.precoLojista ?? p.PrecoLojista ?? 0,
+          preco_varejo: p.preco_varejo ?? p.precoVarejo ?? p.PrecoVarejo ?? 0
         }));
 
         setClientesOptions(cliMapped);
@@ -144,15 +144,37 @@ export default function GestaoOrcamentaria() {
     return Math.ceil(quantidade / divisor);
   };
 
-  useEffect(() => {
-    if (produtoSelecionado) {
-      if (tabelaPreco === 'atacado') setPrecoEditavel(produtoSelecionado.preco_atacado);
-      else if (tabelaPreco === 'lojista') setPrecoEditavel(produtoSelecionado.preco_lojista);
-      else setPrecoEditavel(produtoSelecionado.preco_varejo);
-    } else {
-      setPrecoEditavel('');
-    }
-  }, [produtoSelecionado, tabelaPreco]);
+  const obterPrecoProduto = (produto, tabela) => {
+  if (!produto) return 0;
+
+  if (tabela === 'atacado') {
+    return Number(produto.preco_atacado ?? 0);
+  }
+
+  if (tabela === 'lojista') {
+    return Number(produto.preco_lojista ?? 0);
+  }
+
+  if (tabela === 'varejo') {
+    return Number(produto.preco_varejo ?? 0);
+  }
+
+  return 0;
+};
+
+useEffect(() => {
+  if (!produtoSelecionado) {
+    setPrecoEditavel('');
+    return;
+  }
+
+  const preco = obterPrecoProduto(
+    produtoSelecionado,
+    tabelaPreco
+  );
+
+  setPrecoEditavel(preco.toFixed(2));
+}, [produtoSelecionado, tabelaPreco]);
 
   const formatCurrency = (val) => Number(val || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   
@@ -192,7 +214,7 @@ export default function GestaoOrcamentaria() {
 
   // Helper para normalizar o campo de status vindo da API (camelCase ou snake_case)
   const getStatus = (pedido) =>
-    pedido.statusLogistica || pedido.status_logistica || pedido.status || '';
+    pedido.statusLogistica ?? pedido.status_logistica ?? pedido.status ?? '';
 
   const getOrigem = (pedido) =>
     pedido.origem || pedido.Origem || 'APP';
@@ -272,16 +294,87 @@ export default function GestaoOrcamentaria() {
     });
   }, [buscaProduto, produtosOptions]);
 
-  const handlePuxarUltimoPedido = () => {
-    if (!clienteSelecionado) return;
-    const ultimo = pedidos.find(p => p.cliente_id === clienteSelecionado.id && p.status !== 'aguardando_validacao');
-    if (ultimo && ultimo.itemsDetalhados) {
-      setItensManuais([...ultimo.itemsDetalhados]); 
-      alert(`Último pedido (${ultimo.codigo_pedido_formatado}) carregado com sucesso!`);
-    } else {
-      alert('Nenhum pedido anterior encontrado para este cliente.');
+ const handlePuxarUltimoPedido = async () => {
+  if (!clienteSelecionado) return;
+
+  const clienteId = clienteSelecionado.id;
+
+  const pedidosDoCliente = pedidos.filter(p => {
+    const pedidoClienteId = p.clienteId ?? p.cliente_id;
+
+    return (
+      String(pedidoClienteId).toLowerCase() ===
+      String(clienteId).toLowerCase()
+    );
+  });
+
+  if (pedidosDoCliente.length === 0) {
+    alert('Nenhum pedido anterior encontrado para este cliente.');
+    return;
+  }
+
+  const pedidosValidos = pedidosDoCliente.filter(p => {
+    const status = String(
+      p.statusLogistica ??
+      p.status_logistica ??
+      p.status ??
+      ''
+    ).toLowerCase();
+
+    return !status.includes('aguardando');
+  });
+
+  if (pedidosValidos.length === 0) {
+    alert('Este cliente possui pedidos, mas nenhum pode ser repetido.');
+    return;
+  }
+
+  pedidosValidos.sort((a, b) => {
+    const dataA = new Date(
+      a.dataCriacao || a.data_criacao || 0
+    ).getTime();
+
+    const dataB = new Date(
+      b.dataCriacao || b.data_criacao || 0
+    ).getTime();
+
+    return dataB - dataA;
+  });
+
+  const ultimo = pedidosValidos[0];
+
+  try {
+    const detalhe = await obterDetalhePedidoCRM(ultimo.id);
+
+    const itensRepetidos = (detalhe.itens || []).map(item => ({
+      produtoId: item.produtoId,
+      nome: item.nomeProduto,
+      quantidade: Number(item.quantidade),
+      precoUnitario: Number(item.precoUnitario),
+      eh_fabricacao_propria: item.ehFabricacaoPropria,
+      origem: item.ehFabricacaoPropria
+        ? 'proprio'
+        : 'terceiro'
+    }));
+
+    if (itensRepetidos.length === 0) {
+      alert('O último pedido encontrado não possui itens para repetir.');
+      return;
     }
-  };
+
+    setItensManuais(itensRepetidos);
+
+    alert(
+      `Último pedido (${ultimo.codigoPedidoFormatado || ultimo.codigo_pedido_formatado}) carregado com sucesso!`
+    );
+  } catch (err) {
+
+    alert(
+      err.mensagemNormalizada ||
+      'Não foi possível carregar os itens do último pedido.'
+    );
+  }
+};
 
   const handleAddProduto = () => {
     if (!produtoSelecionado || qtdProduto < 1 || precoEditavel === '') return;

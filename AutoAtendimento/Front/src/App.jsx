@@ -18,6 +18,7 @@ import CheckoutB2BPage from './pages/CheckoutB2BPage';
 import PedidoConfirmadoPage from './pages/PedidoConfirmadoPage';
 import TermosDeUsoPage from './pages/TermosDeUsoPage';
 import Carrinho from './pages/CarrinhoPage';
+import ConfirmarEmailPage from './pages/ConfirmarEmailPage';
 
 export default function App() {
   return (
@@ -32,7 +33,8 @@ export default function App() {
           <Route path="/login" element={<LoginB2BPage />} />
           <Route path="/cadastro" element={<CadastroB2BPage />} />
           <Route path="/seja-parceiro" element={<SejaParceiroPage />} />
-
+          <Route path="/confirmar" element={<ConfirmarEmailPage />} />
+          
           {/* Portal B2B (área logada) */}
           <Route path="/portal" element={<PortalLayout />}>
             <Route index element={<DashboardLojistaPage />} />
