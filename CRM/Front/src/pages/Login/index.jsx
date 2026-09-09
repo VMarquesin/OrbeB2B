@@ -128,8 +128,8 @@ export default function Login() {
         {/* Credenciais de Teste */}
         <div className="mt-6 pt-6 border-t border-slate-200 dark:border-slate-800 text-center text-xs text-slate-500 dark:text-slate-400 transition-colors">
           <p>Credenciais de Teste:</p>
-          <p className="mt-1">Admin: <b>admin@acaseira.com.br</b> | <b>admin123</b></p>
-          <p>Operador: <b>vendas@acaseira.com.br</b> | <b>vendas123</b></p>
+          <p className="mt-1">Admin: <b>admin@orbeb2b.com.br</b> | <b>Admin123!</b></p>
+          <p>Vendedor: <b>vendedor@orbeb2b.com.br</b> | <b>Admin123!</b></p>
         </div>
 
       </div>

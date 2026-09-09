@@ -215,7 +215,7 @@ export default function LoginB2BPage() {
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
             <span className="text-stone-500 font-medium">CNPJ</span>
-            <span className="font-mono text-stone-700">use o CNPJ do 1º cliente aprovado</span>
+            <span className="font-mono text-stone-700">59.101.920/0001-49</span>
           </div>
           <div className="flex items-center justify-between text-xs">
             <span className="text-stone-500 font-medium">Senha</span>

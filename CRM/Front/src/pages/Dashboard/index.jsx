@@ -102,26 +102,70 @@ export default function Dashboard() {
   // =========================================================================
   const [unidadesPropriasFila, setUnidadesPropriasFila] = useState(0);
 
-  useEffect(() => {
-    api.get('/api/pedidos')
-      .then(res => {
-        const pedidos = res.data ?? [];
-        let total = 0;
-        pedidos.forEach(p => {
-          // status 1 = Faturado / 2 = EmSeparacao (ambos são "Em Preparação" na UI)
-          const status = p.statusLogisticaInt ?? p.status_logistica ?? p.statusLogistica ?? -1;
-          if (status === 1 || status === 2) {
-            total += Number(p.quantidadeTotalItens || 0);
+useEffect(() => {
+  const carregarCargaProducao = async () => {
+    try {
+      const res = await api.get('/api/pedidos');
+      const pedidos = res.data ?? [];
+
+      const pedidosEmPreparacao = pedidos.filter(p => {
+        const status =
+          p.statusLogisticaInt ??
+          p.status_logistica ??
+          p.statusLogistica ??
+          -1;
+
+        return status === 1 || status === 2;
+      });
+
+      const detalhes = await Promise.all(
+        pedidosEmPreparacao.map(p =>
+          api.get(`/api/pedidos/${p.id}`)
+        )
+      );
+
+      let total = 0;
+
+      detalhes.forEach(resDetalhe => {
+        const pedido = resDetalhe.data;
+        const itens = pedido.itens ?? pedido.Itens ?? [];
+
+        itens.forEach(item => {
+          const fabricacaoPropria =
+            item.ehFabricacaoPropria ??
+            item.EhFabricacaoPropria ??
+            false;
+
+          if (fabricacaoPropria) {
+            total += Number(
+              item.quantidade ??
+              item.Quantidade ??
+              0
+            );
           }
         });
-        setUnidadesPropriasFila(total);
-      })
-      .catch(() => setUnidadesPropriasFila(0));
-  }, []);
+      });
 
-  const mesasEmUso    = unidadesPropriasFila > 0 ? (unidadesPropriasFila / capacidadePorMesa).toFixed(1) : 0;
-  const ocupacaoTurno = Math.min(100, ((unidadesPropriasFila / (capacidadeTotalTurno || 1)) * 100)).toFixed(1);
+      setUnidadesPropriasFila(total);
+    } catch (err) {
+      console.error('Erro ao carregar carga de produção:', err);
+      setUnidadesPropriasFila(0);
+    }
+  };
 
+  carregarCargaProducao();
+}, []);
+
+ const mesasEmUso = unidadesPropriasFila > 0
+  ? (unidadesPropriasFila / capacidadePorMesa).toFixed(1)
+  : 0;
+
+  const ocupacaoTurno = capacidadeTotalTurno > 0
+    ? ((unidadesPropriasFila / capacidadeTotalTurno) * 100).toFixed(1)
+    : '0.0';
+
+  const barraOcupacao = Math.min(100, Number(ocupacaoTurno));
+  const turnoSobrecarregado = Number(ocupacaoTurno) > 100;
   // =========================================================================
   // RENDER
   // =========================================================================
@@ -172,12 +216,20 @@ export default function Dashboard() {
           <div className="w-full lg:w-72 space-y-2">
             <div className="flex justify-between text-xs font-bold text-slate-600">
               <span>Ocupação do Turno ({capacidadeTotalTurno.toLocaleString('pt-BR')} un max)</span>
-              <span className="text-emerald-600">{ocupacaoTurno}%</span>
+                <span className={turnoSobrecarregado ? 'text-rose-600' : 'text-emerald-600'}>
+                  {ocupacaoTurno}%
+                </span>           
             </div>
             <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
               <div 
-                className={`h-full rounded-full transition-all duration-1000 ${ocupacaoTurno > 90 ? 'bg-rose-500' : 'bg-emerald-500'}`} 
-                style={{ width: `${ocupacaoTurno}%` }}
+                className={`h-full rounded-full transition-all duration-1000 ${
+                  turnoSobrecarregado
+                    ? 'bg-rose-500'
+                    : Number(ocupacaoTurno) > 90
+                      ? 'bg-amber-500'
+                      : 'bg-emerald-500'
+                }`}
+                style={{ width: `${barraOcupacao}%` }}
               ></div>
             </div>
             <p className="text-[11px] text-slate-400 text-right flex items-center justify-end gap-1 group-hover:text-amber-600 transition-colors">

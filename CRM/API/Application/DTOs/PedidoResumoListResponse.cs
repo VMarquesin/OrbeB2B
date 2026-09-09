@@ -8,6 +8,7 @@ namespace OrbeB2B.Crm.Application.DTOs;
 public class PedidoResumoListResponse
 {
     public Guid Id { get; private set; }
+    public Guid ClienteId { get; private set; }
     public string CodigoPedidoFormatado { get; private set; } = string.Empty;
     public string NomeCliente { get; private set; } = "Consumidor Final";
     public decimal ValorTotalPedido { get; private set; }

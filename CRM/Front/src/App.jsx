@@ -36,6 +36,23 @@ function PrivateLayout({ children }) {
   );
 }
 
+// Componente para controlar o acesso às rotas de acordo com o perfil
+function RoleRoute({ children, roles }) {
+  const { user } = useAuth();
+
+  // Se não estiver logado, volta pro /login
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  // Se o perfil não tiver permissão para a rota, volta para o Dashboard
+  if (!roles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
+
 function AppRoutes() {
   const { user } = useAuth();
 
@@ -54,28 +71,73 @@ function AppRoutes() {
       {/* ROTAS PRIVADAS (Dentro do Sistema/Sidebar) */}
       {/* ========================================== */}
       
-      <Route path="/" element={<PrivateLayout><Dashboard /></PrivateLayout>} />
-      <Route path="/pedidos" element={<PrivateLayout><Orders /></PrivateLayout>} />
-      <Route path="/produtos" element={<PrivateLayout><Products /></PrivateLayout>} />
-      <Route path="/clientes" element={<PrivateLayout><Clients /></PrivateLayout>} />
-      <Route path="/usuarios" element={<PrivateLayout><GestaoUsuarios /></PrivateLayout>} />
+      {/* Dashboard — Administrador e Vendedor */}
+      <Route path="/" element={
+        <PrivateLayout>
+          <RoleRoute roles={['AdminMaster', 'Vendedor']}>
+            <Dashboard />
+          </RoleRoute>
+        </PrivateLayout>
+      } />
+
+      {/* Gestão Orçamentária — Administrador e Vendedor */}
+      <Route path="/pedidos" element={
+        <PrivateLayout>
+          <RoleRoute roles={['AdminMaster', 'Vendedor']}>
+            <Orders />
+          </RoleRoute>
+        </PrivateLayout>
+      } />
+
+      {/* Produtos — somente Administrador */}
+      <Route path="/produtos" element={
+        <PrivateLayout>
+          <RoleRoute roles={['AdminMaster', 'Vendedor']}>
+            <Products />
+          </RoleRoute>
+        </PrivateLayout>
+      } />
+
+      {/* Clientes — Administrador e Vendedor */}
+      <Route path="/clientes" element={
+        <PrivateLayout>
+          <RoleRoute roles={['AdminMaster', 'Vendedor']}>
+            <Clients />
+          </RoleRoute>
+        </PrivateLayout>
+      } />
+
+      {/* Colaboradores — somente Administrador */}
+      <Route path="/usuarios" element={
+        <PrivateLayout>
+          <RoleRoute roles={['AdminMaster']}>
+            <GestaoUsuarios />
+          </RoleRoute>
+        </PrivateLayout>
+      } />
 
       {/* Rotas Privadas e Exclusivas do Administrador */}
       <Route path="/financeiro" element={
         <PrivateLayout>
-          {user?.role === 'Administrador' ? <Financial /> : <Navigate to="/" replace />}
+          <RoleRoute roles={['AdminMaster']}>
+            <Financial />
+          </RoleRoute>
         </PrivateLayout>
       } />
       
       <Route path="/relatorios" element={
         <PrivateLayout>
-          {user?.role === 'Administrador' ? <Reports /> : <Navigate to="/" replace />}
+          <RoleRoute roles={['AdminMaster']}>
+            <Reports />
+          </RoleRoute>
         </PrivateLayout>
       } />
       
       <Route path="/configuracoes" element={
         <PrivateLayout>
-          {user?.role === 'Administrador' ? <Settings /> : <Navigate to="/" replace />}
+          <RoleRoute roles={['AdminMaster']}>
+            <Settings />
+          </RoleRoute>
         </PrivateLayout>
       } />
 

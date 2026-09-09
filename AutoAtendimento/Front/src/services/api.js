@@ -19,8 +19,10 @@ export const USER_KEY  = '@orbeb2b:user';
 // Instância configurada
 // ============================================================
 const api = axios.create({
+  // O Vite substitui import.meta.env.VITE_API_URL em build time.
   // Em dev usa .env (localhost), em produção usa .env.production (Render)
   baseURL: import.meta.env.VITE_API_URL ?? 'https://orbeb2b-api-autoatendimento.onrender.com',
+
   headers: {
     'Content-Type': 'application/json',
   },

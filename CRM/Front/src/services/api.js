@@ -19,6 +19,7 @@ const api = axios.create({
   // .env.production   → https://orbeb2b-api.onrender.com
   baseURL: import.meta.env.VITE_API_URL ?? 'https://orbeb2b-api.onrender.com',
   timeout: 10000,
+
   headers: {
     'Content-Type': 'application/json',
   },

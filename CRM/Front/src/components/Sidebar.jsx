@@ -24,16 +24,16 @@ export default function Sidebar() {
   };
 
   const menuItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['Administrador', 'Operador'] },
-    { name: 'Gestão Orçamentária', path: '/pedidos', icon: ShoppingCart, roles: ['Administrador', 'Operador'] },
-    { name: 'Financeiro', path: '/financeiro', icon: CircleDollarSign, roles: ['Administrador'] },
-    { name: 'Produtos', path: '/produtos', icon: Package, roles: ['Administrador', 'Operador'] },
-    { name: 'Clientes', path: '/clientes', icon: Users, roles: ['Administrador', 'Operador'] },
-    { name: 'Colaboradores', path: '/usuarios', icon: ShieldAlert, roles: ['Administrador'] },
-    { name: 'Relatórios', path: '/relatorios', icon: FileText, roles: ['Administrador'] },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['AdminMaster', 'Vendedor'] },
+    { name: 'Gestão Orçamentária', path: '/pedidos', icon: ShoppingCart, roles: ['AdminMaster', 'Vendedor'] },
+    { name: 'Financeiro', path: '/financeiro', icon: CircleDollarSign, roles: ['AdminMaster'] },
+    { name: 'Produtos', path: '/produtos', icon: Package, roles: ['AdminMaster', 'Vendedor'] },
+    { name: 'Clientes', path: '/clientes', icon: Users, roles: ['AdminMaster', 'Vendedor'] },
+    { name: 'Colaboradores', path: '/usuarios', icon: ShieldAlert, roles: ['AdminMaster'] },
+    { name: 'Relatórios', path: '/relatorios', icon: FileText, roles: ['AdminMaster'] },
   ];
 
-  const filteredMenu = menuItems.filter(item => item.roles.includes(user?.role || 'Administrador'));
+  const filteredMenu = menuItems.filter(item => item.roles.includes(user?.role));
 
   return (
     <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen transition-colors border-r border-slate-800 shrink-0">

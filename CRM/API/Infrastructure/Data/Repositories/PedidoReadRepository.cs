@@ -18,6 +18,7 @@ public class PedidoReadRepository : IPedidoReadRepository
     {
         var sql = @"
             SELECT p.id
+                  ,p.cliente_id  
                   ,p.codigo_pedido_formatado
                   ,COALESCE(c.nome_ou_razao_social, 'Consumidor Final') AS nome_cliente
                   ,p.valor_total_pedido
@@ -39,6 +40,7 @@ public class PedidoReadRepository : IPedidoReadRepository
         // Consulta 1: cabeçalho do pedido
         var sqlCabecalho = @"
             SELECT p.id
+                  ,p.cliente_id
                   ,p.codigo_pedido_formatado
                   ,COALESCE(c.nome_ou_razao_social, 'Consumidor Final') AS nome_cliente
                   ,p.origem
