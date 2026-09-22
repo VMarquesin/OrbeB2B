@@ -109,13 +109,10 @@ useEffect(() => {
       const pedidos = res.data ?? [];
 
       const pedidosEmPreparacao = pedidos.filter(p => {
-        const status =
-          p.statusLogisticaInt ??
-          p.status_logistica ??
-          p.statusLogistica ??
-          -1;
-
-        return status === 1 || status === 2;
+        const rawStatus = p.statusLogisticaInt ?? p.status_logistica ?? p.statusLogistica ?? p.status ?? -1;
+        const strStatus = String(rawStatus).toLowerCase();
+        
+        return rawStatus === 1 || rawStatus === 2 || strStatus.includes('prepar') || strStatus.includes('separacao');
       });
 
       const detalhes = await Promise.all(
@@ -132,6 +129,7 @@ useEffect(() => {
 
         itens.forEach(item => {
           const fabricacaoPropria =
+            item.eh_fabricacao_propria ?? 
             item.ehFabricacaoPropria ??
             item.EhFabricacaoPropria ??
             false;

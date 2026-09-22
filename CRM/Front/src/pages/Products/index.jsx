@@ -51,7 +51,7 @@ export default function GestaoProdutos() {
           embalagem: p.embalagem || p.Embalagem || '',
           categoriaId: p.categoriaId || p.CategoriaId || '',
           fornecedorId: p.fornecedorId || p.FornecedorId || '',
-          eh_fabricacao_propria: p.eh_fabricacao_propria ?? p.EhFabricacaoPropria ?? true,
+          eh_fabricacao_propria: p.eh_fabricacao_propria ?? p.EhFabricacaoPropria ?? p.ehFabricacaoPropria ?? true,
           preco_atacado: p.preco_atacado ?? p.PrecoAtacado ?? 0,
           preco_lojista: p.preco_lojista ?? p.PrecoLojista ?? 0,
           preco_varejo: p.preco_varejo ?? p.PrecoVarejo ?? 0,
