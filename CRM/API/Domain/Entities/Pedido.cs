@@ -15,6 +15,7 @@ public class Pedido
     public StatusIntegracaoErp StatusErp { get; private set; }
     public decimal ValorTotalPedido { get; private set; }
     public string ObservacaoNegociacao { get; private set; }
+    public FormaPagamento FormaPagamento { get; private set; }
     public DateTime DataCriacao { get; private set; }
 
     private readonly List<PedidoItem> _itens = new();
@@ -23,13 +24,15 @@ public class Pedido
     protected Pedido() { }
 
     /// <summary>Construtor padrão — pedido vinculado a um Cliente cadastrado (B2B) ou Consumidor Final.</summary>
-    public Pedido(Guid empresaId, Guid clienteId, string codigoPedidoFormatado, string observacaoNegociacao)
+    public Pedido(Guid empresaId, Guid clienteId, string codigoPedidoFormatado, string observacaoNegociacao,
+                  FormaPagamento formaPagamento = FormaPagamento.NaoInformada)
     {
         Id = Guid.NewGuid();
         EmpresaId = empresaId;
         ClienteId = clienteId;
         CodigoPedidoFormatado = codigoPedidoFormatado;
         ObservacaoNegociacao = observacaoNegociacao;
+        FormaPagamento = formaPagamento;
 
         Origem = OrigemPedido.MANUAL;
         StatusLogistica = StatusFilaLogistica.AguardandoValidacao;

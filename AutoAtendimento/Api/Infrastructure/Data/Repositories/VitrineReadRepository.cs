@@ -21,7 +21,8 @@ public class VitrineReadRepository : IVitrineReadRepository
                   ,codigo_comercial
                   ,descricao
                   ,embalagem
-                  ,preco_atacado AS preco
+                  ,preco_atacado      AS preco
+                  ,descricao_detalhada
             FROM produtos
             WHERE empresa_id = @EmpresaId
               AND esta_ativo = true
@@ -39,7 +40,8 @@ public class VitrineReadRepository : IVitrineReadRepository
                   ,codigo_comercial
                   ,descricao
                   ,embalagem
-                  ,preco_atacado AS preco
+                  ,preco_atacado      AS preco
+                  ,descricao_detalhada
             FROM produtos
             WHERE id = @ProdutoId
               AND (@EmpresaId IS NULL OR empresa_id = @EmpresaId)
@@ -60,7 +62,8 @@ public class VitrineReadRepository : IVitrineReadRepository
                   ,codigo_comercial
                   ,descricao
                   ,embalagem
-                  ,preco_atacado AS preco
+                  ,preco_atacado      AS preco
+                  ,descricao_detalhada
             FROM produtos
             WHERE (@EmpresaId IS NULL OR empresa_id = @EmpresaId)
               AND esta_ativo = true
@@ -69,5 +72,41 @@ public class VitrineReadRepository : IVitrineReadRepository
         using var connection = _connectionFactory.CreateConnection();
 
         return await connection.QueryAsync<ProdutoVitrineResponse>(sql, new { EmpresaId = empresaId });
+    }
+
+    public async Task<IEnumerable<ProdutoVitrineResponse>> ObterProdutosAtivosPorCategoriaAsync(Guid empresaId, Guid? categoriaId)
+    {
+        const string sql = @"
+            SELECT p.id
+                  ,p.codigo_comercial
+                  ,p.descricao
+                  ,p.embalagem
+                  ,p.preco_atacado      AS preco
+                  ,p.descricao_detalhada
+            FROM produtos p
+            WHERE p.empresa_id = @EmpresaId
+              AND p.esta_ativo = true
+              AND (@CategoriaId IS NULL OR p.categoria_id = @CategoriaId)
+            ORDER BY p.descricao";
+
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryAsync<ProdutoVitrineResponse>(
+            sql, new { EmpresaId = empresaId, CategoriaId = categoriaId });
+    }
+
+    public async Task<IEnumerable<CategoriaVitrineResponse>> ObterCategoriasAsync(Guid empresaId)
+    {
+        // Retorna apenas categorias que possuem ao menos um produto ativo
+        const string sql = @"
+            SELECT DISTINCT c.id
+                           ,c.nome
+            FROM categorias c
+            INNER JOIN produtos p ON p.categoria_id = c.id
+            WHERE c.empresa_id = @EmpresaId
+              AND p.esta_ativo = true
+            ORDER BY c.nome";
+
+        using var connection = _connectionFactory.CreateConnection();
+        return await connection.QueryAsync<CategoriaVitrineResponse>(sql, new { EmpresaId = empresaId });
     }
 }

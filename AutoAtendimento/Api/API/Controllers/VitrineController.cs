@@ -15,19 +15,35 @@ public class VitrineController : ControllerBase
         _repository = repository;
     }
 
-    // ── Rota autenticada ─────────────────────────────────────────────────────
+    // ── Produtos autenticados (com filtro opcional de categoria) ─────────────
     [Authorize(Roles = "CompradorB2B")]
     [HttpGet("produtos")]
-    public async Task<IActionResult> ObterProdutos()
+    public async Task<IActionResult> ObterProdutos([FromQuery] Guid? categoriaId = null)
     {
         var tenantIdClaim = User.FindFirst("TenantId")?.Value;
 
         if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
             return Forbid();
 
-        var produtos = await _repository.ObterProdutosAtivosAsync(empresaId);
+        var produtos = categoriaId.HasValue
+            ? await _repository.ObterProdutosAtivosPorCategoriaAsync(empresaId, categoriaId)
+            : await _repository.ObterProdutosAtivosAsync(empresaId);
 
         return Ok(produtos);
+    }
+
+    // ── Categorias autenticadas ───────────────────────────────────────────────
+    [Authorize(Roles = "CompradorB2B")]
+    [HttpGet("categorias")]
+    public async Task<IActionResult> ObterCategorias()
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (string.IsNullOrEmpty(tenantIdClaim) || !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var categorias = await _repository.ObterCategoriasAsync(empresaId);
+        return Ok(categorias);
     }
 
     // ── Rota pública (landing page, carrossel, catálogo público) ─────────────

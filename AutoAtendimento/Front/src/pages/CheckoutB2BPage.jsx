@@ -12,6 +12,7 @@ import {
   X,
   Loader2,
   AlertCircle,
+  CreditCard,
 } from 'lucide-react';
 import { criarPedido } from '../services/pedidosService';
 import { obterMeuPerfil } from '../services/cadastroService';
@@ -21,6 +22,16 @@ export default function CheckoutB2BPage() {
   const [erro, setErro]         = useState('');
   const { cartItems, clearCart } = useCart();
   const navigate = useNavigate();
+
+  // FormaPagamento — mapeado para o enum C#:
+  // 0=NaoInformada | 1=Pix | 2=BoletoPrazo | 3=CartaoCredito
+  const [formaPagamento, setFormaPagamento] = useState(1); // default: Pix
+
+  const FORMAS_PAGAMENTO = [
+    { valor: 1, label: 'Pix', descricao: 'Pagamento instantâneo' },
+    { valor: 2, label: 'Boleto a Prazo', descricao: 'Prazo a combinar com vendedor' },
+    { valor: 3, label: 'Cartão de Crédito', descricao: 'Sujeito a disponibilidade' },
+  ];
 
   // ── Dados do cliente buscados da API ────────────────────────────────────────
   const [dadosCliente, setDadosCliente]         = useState(null);
@@ -78,13 +89,13 @@ export default function CheckoutB2BPage() {
 
     try {
       // Zero Trust: clienteId e tenantId vêm do JWT no back-end.
-      // Nenhuma informação de pagamento é enviada — negociado diretamente no CRM/ERP.
       const resposta = await criarPedido({
         itens: cartItems.map((item) => ({
           produtoId:     item.id,
           quantidade:    item.qty,
           precoUnitario: item.price,
         })),
+        formaPagamento, // int mapeado ao enum FormaPagamento do back-end
       });
 
       clearCart();
@@ -216,6 +227,43 @@ export default function CheckoutB2BPage() {
                   Para alterações, acesse <strong>Perfil → Solicitar alteração de endereço</strong>.
                 </p>
               </div>
+            </section>
+
+            {/* Forma de Pagamento */}
+            <section className="bg-white rounded-2xl border border-stone-200 p-6 shadow-sm">
+              <h2 className="flex items-center gap-2 text-base font-semibold text-stone-800 pb-4 border-b border-stone-100">
+                <CreditCard className="w-4 h-4 text-primary" strokeWidth={1.75} />
+                Forma de Pagamento
+              </h2>
+              <div className="mt-4 space-y-3">
+                {FORMAS_PAGAMENTO.map((fp) => (
+                  <label
+                    key={fp.valor}
+                    className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      formaPagamento === fp.valor
+                        ? 'border-primary bg-primary/5'
+                        : 'border-stone-200 hover:border-stone-300'
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="formaPagamento"
+                      value={fp.valor}
+                      checked={formaPagamento === fp.valor}
+                      onChange={() => setFormaPagamento(fp.valor)}
+                      className="accent-primary w-4 h-4"
+                    />
+                    <div>
+                      <p className="text-sm font-semibold text-stone-800">{fp.label}</p>
+                      <p className="text-xs text-stone-400 mt-0.5">{fp.descricao}</p>
+                    </div>
+                  </label>
+                ))}
+              </div>
+              <p className="mt-4 flex items-start gap-2 text-xs text-stone-400">
+                <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+                A forma selecionada será confirmada pela equipe comercial antes da emissão.
+              </p>
             </section>
 
             {/* Resumo do Carrinho */}

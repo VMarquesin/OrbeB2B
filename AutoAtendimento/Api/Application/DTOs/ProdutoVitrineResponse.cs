@@ -5,5 +5,6 @@ public record ProdutoVitrineResponse(
     string CodigoComercial,
     string Descricao,
     string Embalagem,
-    decimal Preco
+    decimal Preco,
+    string? DescricaoDetalhada   // nullable — campo opcional no cadastro do produto
 );

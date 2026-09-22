@@ -21,11 +21,22 @@ import api from './api';
 
 /**
  * Retorna os produtos ativos da vitrine do comprador logado (JWT obrigatório).
- *
- * @returns {Promise<Array<{ id, codigoComercial, descricao, embalagem, preco }>>}
+ * @param {string|null} categoriaId - UUID da categoria para filtrar, ou null para todas.
+ * @returns {Promise<Array<{ id, codigoComercial, descricao, embalagem, preco, descricaoDetalhada }>>}
  */
-export async function obterProdutos() {
-  const { data } = await api.get('/api/vitrine/produtos');
+export async function obterProdutos(categoriaId = null) {
+  const { data } = await api.get('/api/vitrine/produtos', {
+    params: categoriaId ? { categoriaId } : {}
+  });
+  return data;
+}
+
+/**
+ * Retorna as categorias com produtos ativos (JWT obrigatório).
+ * @returns {Promise<Array<{ id, nome }>>}
+ */
+export async function obterCategorias() {
+  const { data } = await api.get('/api/vitrine/categorias');
   return data;
 }
 

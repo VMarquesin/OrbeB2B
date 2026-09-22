@@ -3,14 +3,17 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Search, SlidersHorizontal, ShoppingCart, Loader2, AlertCircle, CheckCircle2, X } from 'lucide-react';
 import { useCart } from '../contexts/CartContext';
 import logo from '../assets/logo.jpg';
-import { obterProdutos } from '../services/vitrineService';
+import { obterProdutos, obterCategorias } from '../services/vitrineService';
 
 export default function CatalogoLogadoPage() {
   const [produtos, setProdutos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState(null);
   const [query, setQuery] = useState('');
-  const [category, setCategory] = useState('Todos');
+  // categoriaId = null → "Todos"; string UUID → categoria selecionada
+  const [categoriaId, setCategoriaId] = useState(null);
+  const [categorias, setCategorias] = useState([]);
+  const [loadingCategorias, setLoadingCategorias] = useState(true);
 
   const [showAdded, setShowAdded] = useState(false);
   const [addedProduct, setAddedProduct] = useState(null);
@@ -18,7 +21,25 @@ export default function CatalogoLogadoPage() {
 
   const { cartItems, addItem } = useCart();
 
-  // Carrega os produtos da API ao montar o componente
+  // Carrega categorias da API ao montar
+  useEffect(() => {
+    let cancelado = false;
+    async function carregarCategorias() {
+      setLoadingCategorias(true);
+      try {
+        const data = await obterCategorias();
+        if (!cancelado) setCategorias(data);
+      } catch {
+        // falha silenciosa — filtro fica apenas com "Todos"
+      } finally {
+        if (!cancelado) setLoadingCategorias(false);
+      }
+    }
+    carregarCategorias();
+    return () => { cancelado = true; };
+  }, []);
+
+  // Carrega produtos (re-executa quando categoriaId muda)
   useEffect(() => {
     let cancelado = false;
 
@@ -26,7 +47,7 @@ export default function CatalogoLogadoPage() {
       setLoading(true);
       setErro(null);
       try {
-        const data = await obterProdutos();
+        const data = await obterProdutos(categoriaId);
         if (!cancelado) setProdutos(data);
       } catch (err) {
         if (!cancelado) setErro(err.mensagemNormalizada ?? 'Não foi possível carregar o catálogo.');
@@ -37,7 +58,7 @@ export default function CatalogoLogadoPage() {
 
     carregar();
     return () => { cancelado = true; };
-  }, []);
+  }, [categoriaId]);
 
   function handleAdicionar(produto) {
     addItem({
@@ -62,16 +83,13 @@ export default function CatalogoLogadoPage() {
     setShowAdded(true);
   }
 
-  // Categorias derivadas dos dados da API (embalagem como agrupador visual)
-  const categorias = ['Todos', ...new Set(produtos.map((p) => p.embalagem))];
-
+  // Filtro de busca por texto (cliente-side — rápido)
   const filtered = produtos.filter((p) => {
     const search = query.toLowerCase();
-    const matchesSearch =
+    return (
       p.descricao.toLowerCase().includes(search) ||
-      p.codigoComercial.toLowerCase().includes(search);
-    const matchesCategory = category === 'Todos' || p.embalagem === category;
-    return matchesSearch && matchesCategory;
+      p.codigoComercial.toLowerCase().includes(search)
+    );
   });
 
   // --- Estados de Loading e Erro ---
@@ -162,8 +180,9 @@ export default function CatalogoLogadoPage() {
           />
 
           <select
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            value={categoriaId ?? ''}
+            onChange={(e) => setCategoriaId(e.target.value || null)}
+            disabled={loadingCategorias}
             className="
               px-4
               py-2.5
@@ -176,12 +195,13 @@ export default function CatalogoLogadoPage() {
               focus:outline-none
               focus:ring-2
               focus:ring-primary/30
+              disabled:opacity-50
             "
           >
-
+            <option value="">Todas as categorias</option>
             {categorias.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+              <option key={cat.id} value={cat.id}>
+                {cat.nome}
               </option>
             ))}
 

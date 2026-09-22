@@ -40,7 +40,8 @@ public class PedidoClienteController : ControllerBase
             empresaId,
             clienteId,
             codigoPedido,
-            request.ObservacaoNegociacao ?? string.Empty
+            request.ObservacaoNegociacao ?? string.Empty,
+            request.FormaPagamento
         );
 
         foreach (var item in request.Itens)

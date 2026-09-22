@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { Store, ShoppingCart, Bell, UserCircle, X, LogOut, Building2, Pencil, Loader2, AlertCircle } from 'lucide-react';
+import { Store, ShoppingCart, UserCircle, X, LogOut, Building2, Pencil, Loader2, AlertCircle } from 'lucide-react';
 import { useCart } from '../../contexts/CartContext';
 import { solicitarAlteracaoEndereco, obterMeuPerfil } from '../../services/cadastroService';
 import { obterUsuarioLogado, logout as logoutService } from '../../services/authService';
@@ -285,17 +285,14 @@ export default function PortalLayout() {
                 )}
               </button>
 
-              {/* Notificações */}
-              <button
+              {/* Notificações — oculto até implementação do back-end */}
+              {/* <button
                 className="flex items-center justify-center w-7 h-7
                       text-stone-400 hover:text-stone-700 transition-colors"
                 aria-label="Notificações"
               >
-                <Bell
-                  className="w-5 h-5"
-                  strokeWidth={1.75}
-                />
-              </button>
+                <Bell className="w-5 h-5" strokeWidth={1.75} />
+              </button> */}
 
               {/* Perfil */}
               <div className="relative" ref={dropdownRef}>
