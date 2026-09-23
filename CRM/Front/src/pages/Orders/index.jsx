@@ -96,7 +96,7 @@ export default function GestaoOrcamentaria() {
           id: p.id || p.Id,
           descricao: p.descricao || p.Descricao || '',
           codigo_comercial: p.codigo_comercial || p.CodigoComercial || p.codigoComercial || '',
-          eh_fabricacao_propria: p.eh_fabricacao_propria ?? p.EhFabricacaoPropria ?? true,
+          eh_fabricacao_propria: p.eh_fabricacao_propria ?? p.EhFabricacaoPropria ?? p.ehFabricacaoPropria ?? true,
           preco_atacado: p.preco_atacado ?? p.precoAtacado ?? p.PrecoAtacado ?? 0,
           preco_lojista: p.preco_lojista ?? p.precoLojista ?? p.PrecoLojista ?? 0,
           preco_varejo: p.preco_varejo ?? p.precoVarejo ?? p.PrecoVarejo ?? 0
@@ -1108,12 +1108,17 @@ useEffect(() => {
                   <div className="space-y-2">
                     {itensManuais.filter(i => i.eh_fabricacao_propria).map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-emerald-100 shadow-sm">
-                        <div className="flex-1">
+                        {/* Esquerda: min-w-0 permite que o truncate funcione sem empurrar o resto */}
+                        <div className="flex-1 min-w-0">
                           <p className="font-bold text-slate-700 text-sm truncate pr-2">{item.nome}</p>
                           <p className="text-xs text-slate-400 mt-0.5">{item.quantidade}x {formatCurrency(item.precoUnitario)}</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-black text-slate-800">{formatCurrency(item.quantidade * item.precoUnitario)}</span>
+                        
+                        {/* Direita: shrink-0 impede que o preço e o botão sejam espremidos */}
+                        <div className="flex items-center gap-3 shrink-0 ml-2">
+                          <span className="font-black text-slate-800 whitespace-nowrap">
+                            {formatCurrency(item.quantidade * item.precoUnitario)}
+                          </span>
                           <button onClick={() => removerItemManual(itensManuais.indexOf(item))} className="text-rose-400 hover:text-rose-600 cursor-pointer p-1">
                             <Trash2 size={16} />
                           </button>
@@ -1133,12 +1138,17 @@ useEffect(() => {
                   <div className="space-y-2">
                     {itensManuais.filter(i => !i.eh_fabricacao_propria).map((item, idx) => (
                       <div key={idx} className="flex justify-between items-center bg-white p-3 rounded-xl border border-purple-100 shadow-sm">
-                        <div className="flex-1">
+                        {/* Esquerda: min-w-0 permite que o truncate funcione */}
+                        <div className="flex-1 min-w-0">
                           <p className="font-bold text-slate-700 text-sm truncate pr-2">{item.nome}</p>
                           <p className="text-xs text-slate-400 mt-0.5">{item.quantidade}x {formatCurrency(item.precoUnitario)}</p>
                         </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-black text-slate-800">{formatCurrency(item.quantidade * item.precoUnitario)}</span>
+                        
+                        {/* Direita: shrink-0 impede que o preço seja espremido */}
+                        <div className="flex items-center gap-3 shrink-0 ml-2">
+                          <span className="font-black text-slate-800 whitespace-nowrap">
+                            {formatCurrency(item.quantidade * item.precoUnitario)}
+                          </span>
                           <button onClick={() => removerItemManual(itensManuais.indexOf(item))} className="text-rose-400 hover:text-rose-600 cursor-pointer p-1">
                             <Trash2 size={16} />
                           </button>
