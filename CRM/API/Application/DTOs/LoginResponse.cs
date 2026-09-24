@@ -6,5 +6,6 @@ public record LoginResponse(
     string Nome,
     string Email,
     Guid EmpresaId,
+    Guid PerfilId,
     string Perfil
 );

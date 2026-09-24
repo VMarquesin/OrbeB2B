@@ -13,12 +13,14 @@ public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
         builder.Property(e => e.Id).HasColumnName("id");
         
         builder.Property(e => e.EmpresaId).HasColumnName("empresa_id").IsRequired();
-        builder.Property(e => e.CategoriaId).HasColumnName("categoria_id").IsRequired();
+        builder.Property(e => e.CategoriaId).HasColumnName("categoria_id");
         
         builder.Property(e => e.CodigoComercial).HasColumnName("codigo_comercial").HasMaxLength(50).IsRequired();
         builder.Property(e => e.Descricao).HasColumnName("descricao").HasMaxLength(255).IsRequired();
+        builder.Property(e => e.DescricaoDetalhada).HasColumnName("descricao_detalhada").HasColumnType("text");
+        builder.Property(e => e.ImagemUrl).HasColumnName("imagem_url").HasColumnType("text");
         builder.Property(e => e.Embalagem).HasColumnName("embalagem").HasMaxLength(50).IsRequired();
-        builder.Property(e => e.FornecedorId).HasColumnName("fornecedor_id").IsRequired();
+        builder.Property(e => e.FornecedorId).HasColumnName("fornecedor_id");
         builder.Property(e => e.EhFabricacaoPropria).HasColumnName("eh_fabricacao_propria").IsRequired();
         
         builder.Property(e => e.PrecoAtacado).HasColumnName("preco_atacado").HasColumnType("numeric(12,2)").IsRequired();
@@ -40,5 +42,10 @@ public class ProdutoConfiguration : IEntityTypeConfiguration<Produto>
                .WithMany()
                .HasForeignKey(e => e.FornecedorId)
                .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasMany(e => e.Imagens)
+              .WithOne(e => e.Produto)
+              .HasForeignKey(e => e.ProdutoId)
+              .OnDelete(DeleteBehavior.Cascade);       
     }
 }

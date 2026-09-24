@@ -6,5 +6,5 @@ public interface IInteligenciaReadRepository
 {
     Task<DashboardPrincipalResponse> ObterDashboardPrincipalAsync(Guid tenantId);
     Task<HistoricoFaturamentoResponse> ObterHistoricoFaturamentoAsync(Guid tenantId, DateTime? dataInicio, DateTime? dataFim);
-    Task<BiCurvaAbcResponse> ObterCurvaAbcProdutosAsync(Guid tenantId);
+    Task<BiCurvaAbcResponse> ObterCurvaAbcProdutosAsync(Guid tenantId, DateTime? dataInicio, DateTime? dataFim);
 }

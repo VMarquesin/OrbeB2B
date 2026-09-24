@@ -13,8 +13,11 @@ public class CrmDbContext : DbContext
     public DbSet<Empresa> Empresas { get; set; }
     public DbSet<Categoria> Categorias { get; set; }
     public DbSet<Produto> Produtos { get; set; }
+    public DbSet<ProdutoImagem> ProdutoImagens { get; set; }
     public DbSet<Fornecedor> Fornecedores { get; set; }
     public DbSet<PerfilUsuario> PerfisUsuario { get; set; }
+    public DbSet<PermissaoPerfil> PermissoesPerfil { get; set; }
+    public DbSet<PermissaoUsuario> PermissoesUsuario { get; set; }
     public DbSet<Usuario> Usuarios { get; set; }
     public DbSet<EmpresaFuncionario> EmpresaFuncionarios { get; set; }
     public DbSet<Cliente> Clientes { get; set; }

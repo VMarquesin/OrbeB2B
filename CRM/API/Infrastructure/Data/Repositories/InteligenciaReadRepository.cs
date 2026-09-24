@@ -114,6 +114,7 @@ public class InteligenciaReadRepository : IInteligenciaReadRepository
     {
         const string sql = @"
             SELECT
+                p.id                      AS Id,
                 p.data_criacao            AS Data,
                 p.codigo_pedido_formatado AS Codigo,
                 c.nome_fantasia           AS ClienteNome,
@@ -145,23 +146,26 @@ public class InteligenciaReadRepository : IInteligenciaReadRepository
     // =========================================================================
     // MÉTODO 3 — Curva ABC (Pareto)
     // =========================================================================
-    public async Task<BiCurvaAbcResponse> ObterCurvaAbcProdutosAsync(Guid tenantId)
+    public async Task<BiCurvaAbcResponse> ObterCurvaAbcProdutosAsync(Guid tenantId, DateTime? dataInicio, DateTime? dataFim)
     {
         const string sql = @"
             SELECT
                 pro.descricao                                                AS Produto,
                 CAST(SUM(pi5.quantidade_solicitada) AS int)                  AS QtdVendida,
-                SUM(pi5.quantidade_solicitada * pi5.preco_unitario_aplicado) AS FaturamentoTotal
+                SUM(pi5.quantidade_solicitada * pi5.preco_unitario_aplicado) AS FaturamentoTotal,
+                pi5.eh_fabricacao_propria_snapshot                             AS EhFabricacaoPropria
             FROM pedido_itens pi5
             INNER JOIN pedidos  ped5 ON pi5.pedido_id  = ped5.id
             INNER JOIN produtos pro  ON pi5.produto_id = pro.id
             WHERE ped5.empresa_id = @TenantId
-            GROUP BY pro.descricao
+              AND (@DataInicio IS NULL OR ped5.data_criacao >= @DataInicio)
+              AND (@DataFim    IS NULL OR ped5.data_criacao <= @DataFim)
+            GROUP BY pro.descricao, pi5.eh_fabricacao_propria_snapshot
             ORDER BY FaturamentoTotal DESC";
 
         using var connection = _connectionFactory.CreateConnection();
 
-        var brutos = (await connection.QueryAsync<ProdutoBrutoAbc>(sql, new { TenantId = tenantId })).ToList();
+        var brutos = (await connection.QueryAsync<ProdutoBrutoAbc>(sql, new { TenantId = tenantId, DataInicio = dataInicio, DataFim = dataFim.HasValue ? dataFim.Value.Date.AddDays(1).AddTicks(-1) : (DateTime?)null })).ToList();
 
         if (!brutos.Any())
             return new BiCurvaAbcResponse(0, 0m, Enumerable.Empty<ItemCurvaAbc>());
@@ -182,7 +186,7 @@ public class InteligenciaReadRepository : IInteligenciaReadRepository
                        : "C";
 
             return new ItemCurvaAbc(classe, b.Produto, b.QtdVendida, b.FaturamentoTotal,
-                                    Math.Round(participacao, 2));
+                                    Math.Round(participacao, 2), b.EhFabricacaoPropria);
         }).ToList();
 
         return new BiCurvaAbcResponse(brutos.Count, Math.Round(ticketMedioGlobal, 2), itensFinal);
@@ -194,5 +198,6 @@ public class InteligenciaReadRepository : IInteligenciaReadRepository
         public string  Produto         { get; init; } = string.Empty;
         public int     QtdVendida      { get; init; }
         public decimal FaturamentoTotal{ get; init; }
+        public bool EhFabricacaoPropria { get; init; }
     }
 }

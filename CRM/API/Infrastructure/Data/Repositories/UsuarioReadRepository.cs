@@ -14,7 +14,9 @@ public class UsuarioReadRepository : IUsuarioReadRepository
         _connectionFactory = connectionFactory;
     }
 
-    public async Task<IEnumerable<UsuarioListResponse>> ObterTodosPorEmpresaAsync(Guid empresaId, bool incluirInativos = false)
+    public async Task<IEnumerable<UsuarioListResponse>> ObterTodosPorEmpresaAsync(
+        Guid empresaId,
+        bool incluirInativos = false)
     {
         var sql = @"
             SELECT usuarios.id                          AS Id
@@ -36,6 +38,27 @@ public class UsuarioReadRepository : IUsuarioReadRepository
 
         using var connection = _connectionFactory.CreateConnection();
 
-        return await connection.QueryAsync<UsuarioListResponse>(sql, new { EmpresaId = empresaId, IncluirInativos = incluirInativos });
+        return await connection.QueryAsync<UsuarioListResponse>(
+            sql,
+            new
+            {
+                EmpresaId = empresaId,
+                IncluirInativos = incluirInativos
+            });
+    }
+
+    public async Task<IEnumerable<string>> ObterPermissoesPorUsuarioAsync(Guid usuarioId)
+    {
+        var sql = @"
+            SELECT area
+            FROM permissoes_usuario
+            WHERE usuario_id = @UsuarioId
+            ORDER BY area";
+
+        using var connection = _connectionFactory.CreateConnection();
+
+        return await connection.QueryAsync<string>(
+            sql,
+            new { UsuarioId = usuarioId });
     }
 }

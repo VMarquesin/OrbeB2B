@@ -47,7 +47,7 @@ function ProdutoCarouselCard({ produto }) {
       className="flex flex-col rounded-2xl border border-gray-100 bg-white overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-200"
     >
       <img
-        src={`https://placehold.co/400x280/C2856A/FFF?text=${encodeURIComponent((produto.descricao ?? '').slice(0, 14))}`}
+        src={produto.imagemUrl || `https://placehold.co/400x280/C2856A/FFF?text=${encodeURIComponent((produto.descricao ?? '').slice(0, 14))}`}
         alt={produto.descricao}
         className="w-full h-44 object-cover hover:scale-105 transition-transform duration-300"
       />

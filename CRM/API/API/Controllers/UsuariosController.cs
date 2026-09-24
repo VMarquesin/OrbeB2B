@@ -134,4 +134,58 @@ public class UsuariosController : ControllerBase
 
         return Ok(new { mensagem = "Colaborador reativado com sucesso." });
     }
-}
+    [HttpGet("{id:guid}/permissoes")]
+    [Authorize(Roles = "AdminMaster")]
+    public async Task<IActionResult> ObterPermissoesDoUsuario(Guid id)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (string.IsNullOrEmpty(tenantIdClaim) ||
+            !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var (usuario, funcionario) =
+            await _writeRepository.ObterColaboradorPorIdEEmpresaAsync(id, empresaId);
+
+        if (usuario is null || funcionario is null)
+            return NotFound(new
+            {
+                mensagem = "Colaborador não encontrado nesta empresa."
+            });
+
+        var permissoes =
+            await _readRepository.ObterPermissoesPorUsuarioAsync(id);
+
+        return Ok(permissoes);
+    }
+    [HttpPut("{id:guid}/permissoes")]
+    [Authorize(Roles = "AdminMaster")]
+    public async Task<IActionResult> AtualizarPermissoesDoUsuario(
+        Guid id,
+        [FromBody] UsuarioPermissoesUpdateRequest request)
+    {
+        var tenantIdClaim = User.FindFirst("TenantId")?.Value;
+
+        if (string.IsNullOrEmpty(tenantIdClaim) ||
+            !Guid.TryParse(tenantIdClaim, out var empresaId))
+            return Forbid();
+
+        var (usuario, funcionario) =
+            await _writeRepository.ObterColaboradorPorIdEEmpresaAsync(id, empresaId);
+
+        if (usuario is null || funcionario is null)
+            return NotFound(new
+            {
+                mensagem = "Colaborador não encontrado nesta empresa."
+            });
+
+        await _writeRepository.AtualizarPermissoesAsync(
+            id,
+            request.Areas);
+
+        return Ok(new
+        {
+            mensagem = "Permissões atualizadas com sucesso."
+        });
+    }
+}

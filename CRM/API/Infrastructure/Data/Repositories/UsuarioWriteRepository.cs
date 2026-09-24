@@ -55,4 +55,38 @@ public class UsuarioWriteRepository : IUsuarioWriteRepository
         _context.EmpresaFuncionarios.Update(funcionario);
         await _context.SaveChangesAsync();
     }
-}
+
+    public async Task AtualizarPermissoesAsync(
+        Guid usuarioId,
+        IEnumerable<string> areas)
+    {
+        using var transaction = await _context.Database.BeginTransactionAsync();
+
+        try
+        {
+            var permissoesAtuais = await _context.PermissoesUsuario
+                .Where(p => p.UsuarioId == usuarioId)
+                .ToListAsync();
+
+            _context.PermissoesUsuario.RemoveRange(permissoesAtuais);
+
+            var novasPermissoes = areas
+                .Where(area => !string.IsNullOrWhiteSpace(area))
+                .Select(area => area.Trim())
+                .Distinct()
+                .Select(area => new PermissaoUsuario(usuarioId, area))
+                .ToList();
+
+            await _context.PermissoesUsuario.AddRangeAsync(novasPermissoes);
+
+            await _context.SaveChangesAsync();
+
+            await transaction.CommitAsync();
+        }
+        catch
+        {
+            await transaction.RollbackAsync();
+            throw;
+        }
+    }
+}

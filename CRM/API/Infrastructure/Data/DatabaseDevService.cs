@@ -48,11 +48,41 @@ public class DatabaseDevService
         await _context.SaveChangesAsync();
 
         // --- Perfis de usuário ---
-        var perfilAdmin = new PerfilUsuario("AdminMaster", "Administrador com acesso total");
-        var perfilVendedor = new PerfilUsuario("Vendedor", "Acesso ao CRM e dashboards");
-        var perfilComprador = new PerfilUsuario("CompradorB2B", "Acesso ao portal de autoatendimento");
+       var perfilAdmin = new PerfilUsuario(
+            "AdminMaster",
+            "Administrador com acesso total",
+            "CRM"
+        );
+
+        var perfilVendedor = new PerfilUsuario(
+            "Vendedor",
+            "Acesso ao CRM e dashboards",
+            "CRM"
+        );
+
+        var perfilComprador = new PerfilUsuario(
+            "CompradorB2B",
+            "Acesso ao portal de autoatendimento",
+            "AutoAtendimento"
+        );
 
         await _context.PerfisUsuario.AddRangeAsync(perfilAdmin, perfilVendedor, perfilComprador);
+        await _context.SaveChangesAsync();
+        // --- Permissões dos perfis do CRM ---
+        var permissoesPerfil = new List<PermissaoPerfil>
+    {
+        // AdminMaster — acesso completo ao CRM
+        new PermissaoPerfil(perfilAdmin.Id, "Dashboard"),
+        new PermissaoPerfil(perfilAdmin.Id, "Gestão Orçamentária"),
+        new PermissaoPerfil(perfilAdmin.Id, "Financeiro"),
+        new PermissaoPerfil(perfilAdmin.Id, "Produtos"),
+        new PermissaoPerfil(perfilAdmin.Id, "Clientes"),
+        new PermissaoPerfil(perfilAdmin.Id, "Colaboradores"),
+        new PermissaoPerfil(perfilAdmin.Id, "Relatórios"),
+        new PermissaoPerfil(perfilAdmin.Id, "Configurações"),
+    };
+
+        await _context.PermissoesPerfil.AddRangeAsync(permissoesPerfil);
         await _context.SaveChangesAsync();
 
         // --- Usuário Admin (login fixo para desenvolvimento) ---
@@ -101,6 +131,8 @@ public class DatabaseDevService
                 categoriaId,
                 $"SKU-{i:000}",
                 fakerProduto.Commerce.ProductName(),
+                null, // Descrição detalhada será nula para simplificação
+                null,
                 fakerProduto.PickRandom("Caixa 12un", "Fardo 24un", "Pacote 6un", "Display 10un", "Unidade"),
                 fornecedorId,
                 ehProprio,
@@ -129,7 +161,8 @@ public class DatabaseDevService
                     f.Address.ZipCode("########"),
                     f.Address.StreetName(),
                     f.Random.Int(1, 2000).ToString(),
-                    f.Address.City()
+                    f.Address.City(),
+                    null
                 );
             });
 

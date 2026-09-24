@@ -23,6 +23,7 @@ public class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
         builder.Property(e => e.Logradouro).HasColumnName("logradouro").HasMaxLength(150).IsRequired();
         builder.Property(e => e.Numero).HasColumnName("numero").HasMaxLength(20).IsRequired();
         builder.Property(e => e.Bairro).HasColumnName("bairro").HasMaxLength(100).IsRequired();
+        builder.Property(e => e.WhatsApp).HasColumnName("whatsapp").HasMaxLength(20);
         builder.Property(e => e.StatusCadastro).HasColumnName("status_cadastro").IsRequired();
         builder.Property(e => e.DataCadastro).HasColumnName("data_cadastro").IsRequired();
 

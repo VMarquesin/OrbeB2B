@@ -5,7 +5,8 @@ public record ItemCurvaAbc(
     string Produto,
     int QtdVendida,
     decimal FaturamentoTotal,
-    decimal ParticipacaoPercentual
+    decimal ParticipacaoPercentual,
+    bool EhFabricacaoPropria
 );
 
 public record BiCurvaAbcResponse(

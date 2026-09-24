@@ -55,7 +55,8 @@ public class ClientesController : ControllerBase
             request.Cep,
             request.Logradouro,
             request.Numero,
-            request.Bairro
+            request.Bairro,
+            request.WhatsApp
         );
 
         await _writeRepository.CadastrarClienteAsync(novoCliente);
@@ -102,7 +103,8 @@ public class ClientesController : ControllerBase
             request.Cep,
             request.Logradouro,
             request.Numero,
-            request.Bairro
+            request.Bairro,
+            request.WhatsApp
         );
 
         await _writeRepository.AtualizarAsync(cliente);

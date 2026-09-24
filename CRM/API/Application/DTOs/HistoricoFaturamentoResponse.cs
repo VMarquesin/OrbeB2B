@@ -3,6 +3,7 @@ using OrbeB2B.Crm.Domain.Enums;
 namespace OrbeB2B.Crm.Application.DTOs;
 
 public record PedidoHistoricoItem(
+    Guid Id,
     DateTime Data,
     string Codigo,
     string ClienteNome,

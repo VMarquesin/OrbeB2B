@@ -28,12 +28,28 @@ public class ProdutoWriteRepository : IProdutoWriteRepository
     public async Task<Produto?> ObterPorIdEEmpresaAsync(Guid id, Guid empresaId)
     {
         return await _context.Produtos
+            .Include(p => p.Imagens)
             .FirstOrDefaultAsync(p => p.Id == id && p.EmpresaId == empresaId);
     }
+   public async Task AtualizarAsync(Produto produto)
+{
+    var imagensNovas = produto.Imagens.ToList();
 
-    public async Task AtualizarAsync(Produto produto)
+    foreach (var entry in _context.ChangeTracker
+        .Entries<ProdutoImagem>()
+        .ToList())
     {
-        _context.Produtos.Update(produto);
-        await _context.SaveChangesAsync();
+        entry.State = EntityState.Detached;
     }
+
+    await _context.ProdutoImagens
+        .Where(i => i.ProdutoId == produto.Id)
+        .ExecuteDeleteAsync();
+
+    await _context.SaveChangesAsync();
+
+    await _context.ProdutoImagens.AddRangeAsync(imagensNovas);
+
+    await _context.SaveChangesAsync();
+    } 
 }

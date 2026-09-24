@@ -24,7 +24,8 @@ public class JwtTokenService : ITokenService
             new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
             new Claim(ClaimTypes.Email, usuario.Email),
             new Claim(ClaimTypes.Role, usuario.NomePerfil),
-            new Claim("TenantId", usuario.EmpresaId.ToString())
+            new Claim("TenantId", usuario.EmpresaId.ToString()),
+            new Claim("PerfilId", usuario.PerfilId.ToString())
         };
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]!));

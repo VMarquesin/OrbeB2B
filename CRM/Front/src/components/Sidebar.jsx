@@ -24,20 +24,22 @@ export default function Sidebar() {
   };
 
   const menuItems = [
-    { name: 'Dashboard', path: '/', icon: LayoutDashboard, roles: ['AdminMaster', 'Vendedor'] },
-    { name: 'Gestão Orçamentária', path: '/pedidos', icon: ShoppingCart, roles: ['AdminMaster', 'Vendedor'] },
-    { name: 'Financeiro', path: '/financeiro', icon: CircleDollarSign, roles: ['AdminMaster'] },
-    { name: 'Produtos', path: '/produtos', icon: Package, roles: ['AdminMaster', 'Vendedor'] },
-    { name: 'Clientes', path: '/clientes', icon: Users, roles: ['AdminMaster', 'Vendedor'] },
-    { name: 'Colaboradores', path: '/usuarios', icon: ShieldAlert, roles: ['AdminMaster'] },
-    { name: 'Relatórios', path: '/relatorios', icon: FileText, roles: ['AdminMaster'] },
+    { name: 'Dashboard', path: '/', icon: LayoutDashboard, permissao: 'Dashboard' },
+    { name: 'Gestão Orçamentária', path: '/pedidos', icon: ShoppingCart, permissao: 'Gestão Orçamentária' },
+    { name: 'Financeiro', path: '/financeiro', icon: CircleDollarSign, permissao: 'Financeiro' },
+    { name: 'Produtos', path: '/produtos', icon: Package, permissao: 'Produtos' },
+    { name: 'Clientes', path: '/clientes', icon: Users, permissao: 'Clientes' },
+    { name: 'Colaboradores', path: '/usuarios', icon: ShieldAlert, permissao: 'Colaboradores' },
+    { name: 'Relatórios', path: '/relatorios', icon: FileText, permissao: 'Relatórios' },
   ];
 
-  const filteredMenu = menuItems.filter(item => item.roles.includes(user?.role));
+  const filteredMenu = menuItems.filter(item =>
+    user?.permissoes?.includes(item.permissao)
+  );
 
   return (
-    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen transition-colors border-r border-slate-800 shrink-0">
-      
+    <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col h-screen transition-colors border-r border-slate-800 shrink-0 print:hidden">
+
       {/* Logo */}
       <div className="p-6 shrink-0">
         <h2 className="text-xl font-bold text-white tracking-wider">
@@ -71,7 +73,7 @@ export default function Sidebar() {
       {/* Rodapé: Configurações, Perfil e Logout */}
       <div className="p-4 border-t border-slate-800 space-y-2 shrink-0">
         
-        {user?.role === 'Administrador' && (
+        {user?.permissoes?.includes('Configurações') && (
           <NavLink
             to="/configuracoes"
             className={({ isActive }) =>

@@ -42,6 +42,7 @@ public class AuthController : ControllerBase
             Nome: usuario.Nome,
             Email: usuario.Email,
             EmpresaId: usuario.EmpresaId,
+            PerfilId: usuario.PerfilId,
             Perfil: usuario.NomePerfil
         );
 

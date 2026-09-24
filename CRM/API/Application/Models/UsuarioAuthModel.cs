@@ -8,5 +8,6 @@ public class UsuarioAuthModel
     public string SenhaHash { get; init; } = string.Empty;
     public bool EstaAtivo { get; init; }
     public Guid EmpresaId { get; init; }
+    public Guid PerfilId { get; init; }
     public string NomePerfil { get; init; } = string.Empty;
 }

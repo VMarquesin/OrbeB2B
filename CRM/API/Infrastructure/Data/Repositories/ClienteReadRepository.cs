@@ -22,6 +22,11 @@ public class ClienteReadRepository : IClienteReadRepository
                   ,clientes.nome_ou_razao_social
                   ,clientes.nome_fantasia
                   ,clientes.tipo_segmento
+                  ,clientes.cep
+                  ,clientes.logradouro
+                  ,clientes.numero
+                  ,clientes.bairro
+                  ,clientes.whatsapp
                   ,cidades.nome            AS nome_cidade
                   ,estados.sigla           AS sigla_estado
                   ,clientes.status_cadastro
