@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using OrbeB2B.Crm.Domain.Entities;
+using OrbeB2B.Crm.Domain.Enums;
 
 namespace OrbeB2B.Crm.Infrastructure.Data.Mappings;
 
@@ -22,7 +23,7 @@ public class PedidoConfiguration : IEntityTypeConfiguration<Pedido>
         builder.Property(e => e.ValorTotalPedido).HasColumnName("valor_total_pedido").HasColumnType("numeric(12,2)").IsRequired();
         builder.Property(e => e.ObservacaoNegociacao).HasColumnName("observacao_negociacao").HasColumnType("text");
         builder.Property(e => e.FormaPagamento).HasColumnName("forma_pagamento").IsRequired()
-               .HasDefaultValue(0); // 0 = NaoInformada — compatível com pedidos antigos
+               .HasDefaultValue(FormaPagamento.NaoInformada);
         builder.Property(e => e.DataCriacao).HasColumnName("data_criacao").IsRequired();
 
         builder.HasIndex(e => e.CodigoPedidoFormatado).IsUnique();

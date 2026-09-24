@@ -70,7 +70,8 @@ public class RegistroClienteController : ControllerBase
                 request.Cep,
                 request.Logradouro,
                 request.Numero,
-                request.Bairro
+                request.Bairro,
+                null // WhatsApp não é obrigatório no registro inicial, pode ser atualizado depois
             );
             // StatusCadastro = Pendente (valor default do construtor rico)
 

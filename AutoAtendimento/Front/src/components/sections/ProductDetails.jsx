@@ -248,16 +248,6 @@ export default function ProductDetails({ b2b = false }) {
 
           <hr className="border-gray-100" />
 
-          {/* Descrição Detalhada — só exibe se a API retornar o campo preenchido */}
-          {produto.descricaoDetalhada && (
-            <div>
-              <h2 className="text-sm font-bold text-stone-700 mb-2">Descrição</h2>
-              <p className="text-sm text-stone-500 leading-relaxed whitespace-pre-line">
-                {produto.descricaoDetalhada}
-              </p>
-            </div>
-          )}
-
           {/* CTA para usuário não-logado */}
           {!b2b && (
             <div className="rounded-2xl border border-gray-100 bg-gray-50 p-6 flex flex-col gap-5">
