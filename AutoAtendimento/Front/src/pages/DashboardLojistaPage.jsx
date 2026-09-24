@@ -74,7 +74,7 @@ export default function DashboardLojistaPage() {
     addItem({
       id: produto.id,           // UUID real — vai ao checkout corretamente
       name: produto.descricao,
-      image: produtoImagem(produto.descricao),
+      image: produto.imagemUrl || produtoImagem(produto.descricao),
       qty: 1,
       price: produto.preco,
       packaging: {
@@ -233,7 +233,7 @@ export default function DashboardLojistaPage() {
                 className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow block"
               >
                 <img
-                  src={produtoImagem(produto.descricao)}
+                  src={produto.imagemUrl || produtoImagem(produto.descricao)}
                   alt={produto.descricao}
                   className="w-full h-36 object-cover"
                 />

@@ -71,7 +71,8 @@ public class SolicitacoesEnderecoController : ControllerBase
                 solicitacao.Cep,
                 solicitacao.Logradouro,
                 solicitacao.Numero,
-                solicitacao.Bairro
+                solicitacao.Bairro,
+                cliente.WhatsApp
             );
 
             await _context.SaveChangesAsync();

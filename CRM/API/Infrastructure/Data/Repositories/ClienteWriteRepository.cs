@@ -59,7 +59,8 @@ public class ClienteWriteRepository : IClienteWriteRepository
             cep: "00000000",
             logradouro: "Não Informado",
             numero: "S/N",
-            bairro: "Não Informado"
+            bairro: "Não Informado",
+            whatsApp: null
         );
         cliente.AtualizarStatusCadastro(StatusCadastroCliente.Aprovado);
 

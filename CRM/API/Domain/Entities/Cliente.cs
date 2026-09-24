@@ -16,13 +16,25 @@ public class Cliente
     public string Logradouro { get; private set; }
     public string Numero { get; private set; }
     public string Bairro { get; private set; }
+    public string? WhatsApp { get; private set; }
     public StatusCadastroCliente StatusCadastro { get; private set; }
     public DateTime DataCadastro { get; private set; }
     public bool EstaAtivo { get; private set; }
 
     protected Cliente() { }
 
-    public Cliente(Guid empresaId, Guid cidadeId, string documento, string nomeOuRazaoSocial, string nomeFantasia, TipoSegmentoCliente tipoSegmento, string cep, string logradouro, string numero, string bairro)
+    public Cliente(
+        Guid empresaId,
+        Guid cidadeId,
+        string documento,
+        string nomeOuRazaoSocial,
+        string nomeFantasia,
+        TipoSegmentoCliente tipoSegmento,
+        string cep,
+        string logradouro,
+        string numero,
+        string bairro,
+        string? whatsApp)
     {
         Id = Guid.NewGuid();
         EmpresaId = empresaId;
@@ -35,7 +47,8 @@ public class Cliente
         Logradouro = logradouro;
         Numero = numero;
         Bairro = bairro;
-        
+        WhatsApp = whatsApp;
+
         StatusCadastro = StatusCadastroCliente.Pendente;
         DataCadastro = DateTime.UtcNow;
         EstaAtivo = true;
@@ -56,9 +69,16 @@ public class Cliente
         EstaAtivo = true;
     }
 
-    public void AtualizarDados(Guid cidadeId, string nomeOuRazaoSocial, string nomeFantasia,
-                                TipoSegmentoCliente tipoSegmento, string cep,
-                                string logradouro, string numero, string bairro)
+    public void AtualizarDados(
+        Guid cidadeId,
+        string nomeOuRazaoSocial,
+        string nomeFantasia,
+        TipoSegmentoCliente tipoSegmento,
+        string cep,
+        string logradouro,
+        string numero,
+        string bairro,
+        string? whatsApp)
     {
         CidadeId = cidadeId;
         NomeOuRazaoSocial = nomeOuRazaoSocial;
@@ -68,5 +88,6 @@ public class Cliente
         Logradouro = logradouro;
         Numero = numero;
         Bairro = bairro;
+        WhatsApp = whatsApp;
     }
 }

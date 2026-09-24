@@ -13,4 +13,9 @@ public class ClienteListResponse
     public string SiglaEstado { get; set; }
     public string StatusCadastro { get; set; }
     public bool EstaAtivo { get; set; }
+    public string Cep { get; set; }
+    public string Logradouro { get; set; }
+    public string Numero { get; set; }
+    public string Bairro { get; set; }
+    public string? WhatsApp { get; set; }
 }

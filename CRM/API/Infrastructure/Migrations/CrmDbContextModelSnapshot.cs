@@ -142,6 +142,11 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("tipo_segmento");
 
+                    b.Property<string>("WhatsApp")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("whatsapp");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CidadeId");
@@ -442,12 +447,67 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
                         .HasColumnType("character varying(50)")
                         .HasColumnName("nome_perfil");
 
+                    b.Property<string>("Sistema")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("sistema");
+
                     b.HasKey("Id");
 
                     b.HasIndex("NomePerfil")
                         .IsUnique();
 
                     b.ToTable("perfis_usuario", (string)null);
+                });
+
+            modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.PermissaoPerfil", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("area");
+
+                    b.Property<Guid>("PerfilId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("perfil_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PerfilId", "Area")
+                        .IsUnique();
+
+                    b.ToTable("permissoes_perfil", (string)null);
+                });
+
+            modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.PermissaoUsuario", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Area")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("area");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId", "Area")
+                        .IsUnique();
+
+                    b.ToTable("permissoes_usuario", (string)null);
                 });
 
             modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.Produto", b =>
@@ -457,7 +517,7 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid>("CategoriaId")
+                    b.Property<Guid?>("CategoriaId")
                         .HasColumnType("uuid")
                         .HasColumnName("categoria_id");
 
@@ -472,6 +532,10 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("descricao");
+
+                    b.Property<string>("DescricaoDetalhada")
+                        .HasColumnType("text")
+                        .HasColumnName("descricao_detalhada");
 
                     b.Property<bool>("EhFabricacaoPropria")
                         .HasColumnType("boolean")
@@ -491,9 +555,13 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("esta_ativo");
 
-                    b.Property<Guid>("FornecedorId")
+                    b.Property<Guid?>("FornecedorId")
                         .HasColumnType("uuid")
                         .HasColumnName("fornecedor_id");
+
+                    b.Property<string>("ImagemUrl")
+                        .HasColumnType("text")
+                        .HasColumnName("imagem_url");
 
                     b.Property<decimal>("PrecoAtacado")
                         .HasColumnType("numeric(12,2)")
@@ -516,6 +584,34 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
                     b.HasIndex("FornecedorId");
 
                     b.ToTable("produtos", (string)null);
+                });
+
+            modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.ProdutoImagem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ImagemUrl")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("imagem_url");
+
+                    b.Property<int>("Ordem")
+                        .HasColumnType("integer")
+                        .HasColumnName("ordem");
+
+                    b.Property<Guid>("ProdutoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("produto_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProdutoId", "Ordem")
+                        .IsUnique();
+
+                    b.ToTable("produto_imagens", (string)null);
                 });
 
             modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.SolicitacaoAlteracaoEndereco", b =>
@@ -746,13 +842,30 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.PermissaoPerfil", b =>
+                {
+                    b.HasOne("OrbeB2B.Crm.Domain.Entities.PerfilUsuario", null)
+                        .WithMany()
+                        .HasForeignKey("PerfilId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.PermissaoUsuario", b =>
+                {
+                    b.HasOne("OrbeB2B.Crm.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.Produto", b =>
                 {
                     b.HasOne("OrbeB2B.Crm.Domain.Entities.Categoria", null)
                         .WithMany()
                         .HasForeignKey("CategoriaId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.HasOne("OrbeB2B.Crm.Domain.Entities.Empresa", null)
                         .WithMany()
@@ -763,8 +876,18 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
                     b.HasOne("OrbeB2B.Crm.Domain.Entities.Fornecedor", null)
                         .WithMany()
                         .HasForeignKey("FornecedorId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.ProdutoImagem", b =>
+                {
+                    b.HasOne("OrbeB2B.Crm.Domain.Entities.Produto", "Produto")
+                        .WithMany("Imagens")
+                        .HasForeignKey("ProdutoId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("Produto");
                 });
 
             modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.SolicitacaoAlteracaoEndereco", b =>
@@ -793,6 +916,11 @@ namespace OrbeB2B.Crm.Infrastructure.Migrations
             modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.Pedido", b =>
                 {
                     b.Navigation("Itens");
+                });
+
+            modelBuilder.Entity("OrbeB2B.Crm.Domain.Entities.Produto", b =>
+                {
+                    b.Navigation("Imagens");
                 });
 #pragma warning restore 612, 618
         }

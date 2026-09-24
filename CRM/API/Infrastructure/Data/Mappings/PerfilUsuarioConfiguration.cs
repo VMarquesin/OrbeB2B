@@ -14,6 +14,7 @@ public class PerfilUsuarioConfiguration : IEntityTypeConfiguration<PerfilUsuario
         
         builder.Property(e => e.NomePerfil).HasColumnName("nome_perfil").HasMaxLength(50).IsRequired();
         builder.Property(e => e.Descricao).HasColumnName("descricao").HasColumnType("text");
+        builder.Property(e => e.Sistema).HasColumnName("sistema").HasMaxLength(30).IsRequired();
 
         builder.HasIndex(e => e.NomePerfil).IsUnique();
     }

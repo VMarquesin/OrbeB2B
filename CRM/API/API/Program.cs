@@ -36,6 +36,8 @@ builder.Services.AddScoped<IDbConnectionFactory, PgSqlConnectionFactory>();
 
 builder.Services.AddScoped<IAuthReadRepository, AuthReadRepository>();
 builder.Services.AddScoped<ILookupReadRepository, LookupReadRepository>();
+builder.Services.AddScoped<IPerfilReadRepository, PerfilReadRepository>();
+builder.Services.AddScoped<IPerfilWriteRepository, PerfilWriteRepository>();
 
 builder.Services.AddScoped<IUsuarioReadRepository, UsuarioReadRepository>();
 builder.Services.AddScoped<IUsuarioWriteRepository, UsuarioWriteRepository>();
@@ -120,11 +122,19 @@ builder.Services.AddSwaggerGen(c =>
             Array.Empty<string>()
         }
     });
+
+    // Permite que o Swagger represente IFormFile como upload de arquivo
+    c.MapType<IFormFile>(() => new OpenApiSchema
+    {
+        Type = "string",
+        Format = "binary"
+    });
 });
 
 // HttpClient para integração com ViaCEP
 builder.Services.AddScoped<IViaCepService, ViaCepService>();
 builder.Services.AddHttpClient<ViaCepService>();
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("PermitirFrontEnd", policy =>
@@ -136,18 +146,24 @@ builder.Services.AddCors(options =>
                 "http://localhost:5174",
                 "https://localhost:5173",
                 "https://localhost:5174",
+
                 // Produção — domínio estável do CRM na Vercel
                 "https://orbe-b2-b-zsua.vercel.app",
+
                 // Produção — domínio estável do AutoAtendimento na Vercel
                 "https://orbe-b2-b.vercel.app"
             )
             .AllowAnyHeader()
             .AllowAnyMethod();
+
         // Nota: AllowCredentials() só é necessário se usar cookies de sessão.
         // Para JWT via header Authorization, NÃO é necessário e pode causar erros CORS.
     });
 });
+
 var app = builder.Build();
+
+app.UseStaticFiles();
 
 // === CONFIGURAÇÃO DO PIPELINE HTTP ===
 
@@ -159,11 +175,15 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-app.UseCors("PermitirFrontEnd");         // CORS deve ser o primeiro após middlewares de diagnóstico
+
+app.UseCors("PermitirFrontEnd");
+
 if (app.Environment.IsDevelopment())
-    app.UseHttpsRedirection();            // O Render gerencia TLS externamente — não redirecionar em produção
+    app.UseHttpsRedirection();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
 app.MapControllers();
 
 app.Run();

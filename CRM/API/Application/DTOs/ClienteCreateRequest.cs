@@ -11,5 +11,6 @@ public record ClienteCreateRequest(
     string Cep,
     string Logradouro,
     string Numero,
-    string Bairro
+    string Bairro,
+    string? WhatsApp
 );

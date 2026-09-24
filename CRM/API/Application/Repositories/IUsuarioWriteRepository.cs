@@ -8,4 +8,5 @@ public interface IUsuarioWriteRepository
     Task CadastrarUsuarioDaEmpresaAsync(Usuario usuario, EmpresaFuncionario vinculo);
     Task<(Usuario? usuario, EmpresaFuncionario? funcionario)> ObterColaboradorPorIdEEmpresaAsync(Guid usuarioId, Guid empresaId);
     Task AtualizarColaboradorAsync(Usuario usuario, EmpresaFuncionario funcionario);
+     Task AtualizarPermissoesAsync(Guid usuarioId,IEnumerable<string> areas);
 }

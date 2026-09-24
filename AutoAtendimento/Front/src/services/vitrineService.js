@@ -4,11 +4,11 @@
  * Rotas consumidas:
  *   GET /api/vitrine/produtos
  *     ← List<ProdutoVitrineResponse>:
- *         { id, codigoComercial, descricao, embalagem, preco }
+ *         { id, codigoComercial, descricao, embalagem, preco, imagemUrl, descricaoDetalhada }
  *
  *   GET /api/vitrine/produtos-publicos
  *     ← List<ProdutoVitrineResponse>:
- *         { id, codigoComercial, descricao, embalagem, preco }
+ *         { id, codigoComercial, descricao, embalagem, preco, imagemUrl, descricaoDetalhada }
  *
  *   GET /api/vitrine/produtos/:id
  *     ← ProdutoVitrineResponse (item único)
@@ -21,22 +21,26 @@ import api from './api';
 
 /**
  * Retorna os produtos ativos da vitrine do comprador logado (JWT obrigatório).
+ *
  * @param {string|null} categoriaId - UUID da categoria para filtrar, ou null para todas.
- * @returns {Promise<Array<{ id, codigoComercial, descricao, embalagem, preco, descricaoDetalhada }>>}
+ * @returns {Promise<Array<{ id, codigoComercial, descricao, embalagem, preco, imagemUrl, descricaoDetalhada }>>}
  */
 export async function obterProdutos(categoriaId = null) {
   const { data } = await api.get('/api/vitrine/produtos', {
     params: categoriaId ? { categoriaId } : {}
   });
+
   return data;
 }
 
 /**
  * Retorna as categorias com produtos ativos (JWT obrigatório).
+ *
  * @returns {Promise<Array<{ id, nome }>>}
  */
 export async function obterCategorias() {
   const { data } = await api.get('/api/vitrine/categorias');
+
   return data;
 }
 
@@ -45,12 +49,13 @@ export async function obterCategorias() {
  * Usado pela landing page, carrossel e catálogo público.
  *
  * @param {string|null} empresaId - Opcional. ID da empresa caso deseje filtrar por tenant específico.
- * @returns {Promise<Array<{ id, codigoComercial, descricao, embalagem, preco }>>}
+ * @returns {Promise<Array<{ id, codigoComercial, descricao, embalagem, preco, imagemUrl, descricaoDetalhada }>>}
  */
 export async function obterProdutosPublicos(empresaId = null) {
   const { data } = await api.get('/api/vitrine/produtos-publicos', {
     params: empresaId ? { empresaId } : {}
   });
+
   return data;
 }
 
@@ -59,9 +64,10 @@ export async function obterProdutosPublicos(empresaId = null) {
  * Usado pela página de Detalhe do Produto (B2B e público).
  *
  * @param {string} id — UUID do produto
- * @returns {Promise<{ id, codigoComercial, descricao, embalagem, preco }>}
+ * @returns {Promise<{ id, codigoComercial, descricao, embalagem, preco, imagemUrl, descricaoDetalhada }>}
  */
 export async function obterProdutoPorId(id) {
   const { data } = await api.get(`/api/vitrine/produtos/${id}`);
+
   return data;
 }

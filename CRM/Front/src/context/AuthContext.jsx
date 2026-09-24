@@ -27,6 +27,7 @@ export function AuthProvider({ children }) {
         nome: resposta.data.nome,
         email: resposta.data.email,
         empresaId: resposta.data.empresaId,
+        perfilId: resposta.data.perfilId,
         role: resposta.data.perfil
       };
 
@@ -36,6 +37,12 @@ export function AuthProvider({ children }) {
       } else {
         localStorage.setItem('caseira_token', token.token || token.accessToken);
       }
+      const respostaPermissoes = await api.get(
+        '/api/perfis/minhas-permissoes'
+      );
+
+      const permissoes = respostaPermissoes.data.map(permissao => permissao.area);
+      usuario.permissoes = permissoes;
       
       localStorage.setItem('caseira_user', JSON.stringify(usuario));
       

@@ -23,6 +23,7 @@ public class AuthReadRepository : IAuthReadRepository
                   ,usuarios.senha_hash
                   ,usuarios.esta_ativo
                   ,empresa_funcionarios.empresa_id
+                  ,perfis_usuario.id AS perfil_id
                   ,perfis_usuario.nome_perfil
             FROM usuarios
             INNER JOIN empresa_funcionarios

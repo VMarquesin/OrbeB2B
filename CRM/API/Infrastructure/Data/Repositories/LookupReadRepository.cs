@@ -21,6 +21,7 @@ public class LookupReadRepository : ILookupReadRepository
                   ,nome_perfil
                   ,descricao
             FROM perfis_usuario
+            WHERE sistema = 'CRM'
             ORDER BY nome_perfil";
 
         using var connection = _connectionFactory.CreateConnection();

@@ -37,7 +37,7 @@ function PrivateLayout({ children }) {
 }
 
 // Componente para controlar o acesso às rotas de acordo com o perfil
-function RoleRoute({ children, roles }) {
+function PermissionRoute({ children, permissao }) {
   const { user } = useAuth();
 
   // Se não estiver logado, volta pro /login
@@ -46,7 +46,7 @@ function RoleRoute({ children, roles }) {
   }
 
   // Se o perfil não tiver permissão para a rota, volta para o Dashboard
-  if (!roles.includes(user.role)) {
+  if (!user.permissoes?.includes(permissao)) {
     return <Navigate to="/" replace />;
   }
 
@@ -74,70 +74,70 @@ function AppRoutes() {
       {/* Dashboard — Administrador e Vendedor */}
       <Route path="/" element={
         <PrivateLayout>
-          <RoleRoute roles={['AdminMaster', 'Vendedor']}>
+          <PermissionRoute permissao="Dashboard">
             <Dashboard />
-          </RoleRoute>
+          </PermissionRoute>
         </PrivateLayout>
       } />
 
       {/* Gestão Orçamentária — Administrador e Vendedor */}
       <Route path="/pedidos" element={
         <PrivateLayout>
-          <RoleRoute roles={['AdminMaster', 'Vendedor']}>
+          <PermissionRoute permissao="Gestão Orçamentária">
             <Orders />
-          </RoleRoute>
+          </PermissionRoute>
         </PrivateLayout>
       } />
 
       {/* Produtos — somente Administrador */}
       <Route path="/produtos" element={
         <PrivateLayout>
-          <RoleRoute roles={['AdminMaster', 'Vendedor']}>
+          <PermissionRoute permissao="Produtos">
             <Products />
-          </RoleRoute>
+          </PermissionRoute>
         </PrivateLayout>
       } />
 
       {/* Clientes — Administrador e Vendedor */}
       <Route path="/clientes" element={
         <PrivateLayout>
-          <RoleRoute roles={['AdminMaster', 'Vendedor']}>
+          <PermissionRoute permissao="Clientes">
             <Clients />
-          </RoleRoute>
+          </PermissionRoute>
         </PrivateLayout>
       } />
 
       {/* Colaboradores — somente Administrador */}
       <Route path="/usuarios" element={
         <PrivateLayout>
-          <RoleRoute roles={['AdminMaster']}>
+          <PermissionRoute permissao="Colaboradores">
             <GestaoUsuarios />
-          </RoleRoute>
+          </PermissionRoute>
         </PrivateLayout>
       } />
 
       {/* Rotas Privadas e Exclusivas do Administrador */}
       <Route path="/financeiro" element={
         <PrivateLayout>
-          <RoleRoute roles={['AdminMaster']}>
+          <PermissionRoute permissao="Financeiro">
             <Financial />
-          </RoleRoute>
+          </PermissionRoute>
         </PrivateLayout>
       } />
       
       <Route path="/relatorios" element={
         <PrivateLayout>
-          <RoleRoute roles={['AdminMaster']}>
+          <PermissionRoute permissao="Relatórios">
             <Reports />
-          </RoleRoute>
+          </PermissionRoute>
         </PrivateLayout>
       } />
       
       <Route path="/configuracoes" element={
         <PrivateLayout>
-          <RoleRoute roles={['AdminMaster']}>
+          <PermissionRoute permissao="Configurações">
             <Settings />
-          </RoleRoute>
+          </PermissionRoute>
         </PrivateLayout>
       } />
 

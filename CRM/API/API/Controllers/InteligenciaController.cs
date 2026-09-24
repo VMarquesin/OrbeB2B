@@ -54,12 +54,14 @@ public class InteligenciaController : ControllerBase
     /// Análise de Curva ABC (Pareto) dos produtos mais vendidos.
     /// </summary>
     [HttpGet("curva-abc")]
-    public async Task<IActionResult> CurvaAbc()
+    public async Task<IActionResult> CurvaAbc(
+        [FromQuery] DateTime? dataInicio,
+        [FromQuery] DateTime? dataFim)
     {
         var tenantId = ObterTenantId();
         if (tenantId is null) return Forbid();
 
-        var resultado = await _repository.ObterCurvaAbcProdutosAsync(tenantId.Value);
+        var resultado = await _repository.ObterCurvaAbcProdutosAsync(tenantId.Value, dataInicio, dataFim);
         return Ok(resultado);
     }
 }

@@ -64,7 +64,7 @@ export default function CatalogoLogadoPage() {
     addItem({
       id: produto.id,
       name: produto.descricao,
-      image: `https://placehold.co/400x280/C2856A/FFF?text=${encodeURIComponent(produto.descricao.slice(0, 15))}`,
+      image: produto.imagemUrl || `https://placehold.co/400x280/C2856A/FFF?text=${encodeURIComponent(produto.descricao.slice(0, 15))}`,
       qty: 1,
       packaging: { id: 'un', name: produto.embalagem, units: 1 },
       price: produto.preco,
@@ -237,7 +237,7 @@ export default function CatalogoLogadoPage() {
                 className="bg-white rounded-xl border border-stone-200 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
               >
                 <img
-                  src={`https://placehold.co/400x280/C2856A/FFF?text=${encodeURIComponent(product.descricao.slice(0, 15))}`}
+                  src={product.imagemUrl ||`https://placehold.co/400x280/C2856A/FFF?text=${encodeURIComponent(product.descricao.slice(0, 15))}`}
                   alt={product.descricao}
                   className="w-full h-40 object-cover"
                 />

@@ -66,6 +66,7 @@ export default function ProductDetails({ b2b = false }) {
   const [erro, setErro] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [adicionado, setAdicionado] = useState(false);
+  const [imagemSelecionada, setImagemSelecionada] = useState(0);
 
   useEffect(() => {
     if (!produtoId) return;
@@ -74,27 +75,37 @@ export default function ProductDetails({ b2b = false }) {
     async function carregar() {
       setIsLoading(true);
       setErro(null);
+
       try {
         const data = await obterProdutoPorId(produtoId);
-        if (!cancelado) setProduto(data);
+
+        if (!cancelado) {
+          setProduto(data);
+          setImagemSelecionada(0);
+        }
       } catch (err) {
-        if (!cancelado) setErro(err.mensagemNormalizada ?? 'Produto não encontrado.');
+        if (!cancelado) {
+          setErro(err.mensagemNormalizada ?? 'Produto não encontrado.');
+        }
       } finally {
         if (!cancelado) setIsLoading(false);
       }
     }
 
     carregar();
-    return () => { cancelado = true; };
+
+    return () => {
+      cancelado = true;
+    };
   }, [produtoId]);
 
   function handleAddToCart() {
     if (!produto) return;
 
     addItem({
-      id: produto.id,           // UUID real — garante integridade no checkout
+      id: produto.id,
       name: produto.descricao,
-      image: produtoImagem(produto.descricao),
+      image: produto.imagemUrl || produtoImagem(produto.descricao),
       qty: quantity,
       price: produto.preco,
       packaging: {
@@ -110,9 +121,21 @@ export default function ProductDetails({ b2b = false }) {
   }
 
   if (isLoading) return <ProductDetailSkeleton />;
-  if (erro || !produto) return <ProductNotFound mensagem={erro} backTo={b2b ? '/portal/catalogo' : '/catalogo'} />;
 
-  const imagemPrincipal = produtoImagem(produto.descricao);
+  if (erro || !produto) {
+    return (
+      <ProductNotFound
+        mensagem={erro}
+        backTo={b2b ? '/portal/catalogo' : '/catalogo'}
+      />
+    );
+  }
+
+  const imagens = produto.imagens?.length
+    ? produto.imagens
+    : [produto.imagemUrl || produtoImagem(produto.descricao)];
+
+  const imagemPrincipal = imagens[imagemSelecionada];
 
   return (
     <section className="max-w-6xl mx-auto px-6 lg:px-8 py-10 lg:py-16">
@@ -124,16 +147,24 @@ export default function ProductDetails({ b2b = false }) {
         >
           Catálogo
         </Link>
+
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300" />
-        <span className="text-gray-700">{produto.embalagem}</span>
+
+        <span className="text-gray-700">
+          {produto.embalagem}
+        </span>
+
         <ChevronRight className="h-3.5 w-3.5 shrink-0 text-gray-300" />
-        <span className="text-gray-900 font-medium truncate max-w-[200px]">{produto.descricao}</span>
+
+        <span className="text-gray-900 font-medium truncate max-w-[200px]">
+          {produto.descricao}
+        </span>
       </nav>
 
       {/* Layout duas colunas */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
 
-        {/* ── Imagem ── */}
+        {/* ── Galeria de imagens ── */}
         <div>
           <div className="rounded-2xl overflow-hidden border border-gray-100 bg-gray-50">
             <img
@@ -142,10 +173,34 @@ export default function ProductDetails({ b2b = false }) {
               className="w-full aspect-[4/3] object-cover"
             />
           </div>
+
+          {imagens.length > 1 && (
+            <div className="grid grid-cols-4 gap-3 mt-4">
+              {imagens.map((imagem, index) => (
+                <button
+                  key={imagem}
+                  type="button"
+                  onClick={() => setImagemSelecionada(index)}
+                  className={`rounded-xl overflow-hidden border-2 transition ${
+                    imagemSelecionada === index
+                      ? 'border-primary'
+                      : 'border-gray-100 hover:border-gray-300'
+                  }`}
+                >
+                  <img
+                    src={imagem}
+                    alt={`${produto.descricao} - imagem ${index + 1}`}
+                    className="w-full aspect-square object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Informações ── */}
         <div className="flex flex-col gap-6">
+
           {/* Código */}
           <p className="text-xs font-mono text-stone-400 uppercase tracking-widest">
             Cód. {produto.codigoComercial}
@@ -156,11 +211,30 @@ export default function ProductDetails({ b2b = false }) {
             {produto.descricao}
           </h1>
 
+          {/* Descrição detalhada */}
+          {produto.descricaoDetalhada && (
+            <div className="space-y-2">
+              <h2 className="text-sm font-semibold text-stone-700">
+                Descrição
+              </h2>
+
+              <p className="text-sm leading-6 text-stone-600">
+                {produto.descricaoDetalhada}
+              </p>
+            </div>
+          )}
+
           {/* Preço (só visível para B2B logado) */}
           {b2b && (
             <p className="text-3xl font-bold text-primary">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(produto.preco)}
-              <span className="text-base font-normal text-stone-400 ml-2">/ {produto.embalagem}</span>
+              {new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL',
+              }).format(produto.preco)}
+
+              <span className="text-base font-normal text-stone-400 ml-2">
+                / {produto.embalagem}
+              </span>
             </p>
           )}
 
@@ -191,13 +265,18 @@ export default function ProductDetails({ b2b = false }) {
                 <div className="mt-0.5 flex h-10 w-10 items-center justify-center rounded-full border bg-white">
                   <Lock className="h-4 w-4 text-gray-400" />
                 </div>
+
                 <div>
-                  <p className="font-semibold text-gray-900">Preços Exclusivos para Lojistas</p>
+                  <p className="font-semibold text-gray-900">
+                    Preços Exclusivos para Lojistas
+                  </p>
+
                   <p className="mt-1 text-sm text-gray-500">
                     Cadastre-se ou faça login com seu CNPJ para visualizar preços e realizar encomendas em lote.
                   </p>
                 </div>
               </div>
+
               <Link
                 to="/login"
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-white font-semibold"
@@ -205,9 +284,14 @@ export default function ProductDetails({ b2b = false }) {
                 <LogIn className="h-4 w-4" />
                 Faça login para ver preços e encomendar
               </Link>
+
               <p className="text-center text-xs text-gray-400">
                 Ainda não é parceiro?{' '}
-                <Link to="/seja-parceiro" className="font-medium text-primary hover:underline">
+
+                <Link
+                  to="/seja-parceiro"
+                  className="font-medium text-primary hover:underline"
+                >
                   Cadastre-se aqui.
                 </Link>
               </p>
@@ -217,8 +301,12 @@ export default function ProductDetails({ b2b = false }) {
           {/* Controles de quantidade + botão (só B2B logado) */}
           {b2b && (
             <div className="flex flex-col gap-4">
+
               <div className="flex items-center gap-4">
-                <p className="text-sm font-semibold text-stone-700">Quantidade:</p>
+                <p className="text-sm font-semibold text-stone-700">
+                  Quantidade:
+                </p>
+
                 <div className="flex items-center border border-stone-200 rounded-lg overflow-hidden">
                   <button
                     className="px-3 py-2 text-stone-600 hover:bg-stone-50 transition text-lg leading-none"
@@ -226,9 +314,11 @@ export default function ProductDetails({ b2b = false }) {
                   >
                     −
                   </button>
+
                   <span className="px-4 py-2 text-sm font-semibold text-stone-800 min-w-[3rem] text-center">
                     {quantity}
                   </span>
+
                   <button
                     className="px-3 py-2 text-stone-600 hover:bg-stone-50 transition text-lg leading-none"
                     onClick={() => setQuantity((q) => q + 1)}
@@ -240,17 +330,24 @@ export default function ProductDetails({ b2b = false }) {
 
               <button
                 onClick={handleAddToCart}
-                className={`w-full flex items-center justify-center gap-2 rounded-xl py-3.5 font-semibold text-sm transition-all ${adicionado
+                className={`w-full flex items-center justify-center gap-2 rounded-xl py-3.5 font-semibold text-sm transition-all ${
+                  adicionado
                     ? 'bg-emerald-500 text-white'
                     : 'bg-primary hover:bg-primary-hover text-white shadow-md shadow-primary/25'
-                  }`}
+                }`}
               >
                 <ShoppingCart className="h-4 w-4" strokeWidth={2} />
-                {adicionado ? 'Adicionado ao carrinho ✓' : 'Adicionar ao carrinho'}
+
+                {adicionado
+                  ? 'Adicionado ao carrinho ✓'
+                  : 'Adicionar ao carrinho'}
               </button>
 
               <button
-                onClick={() => { handleAddToCart(); navigate('/portal/carrinho'); }}
+                onClick={() => {
+                  handleAddToCart();
+                  navigate('/portal/carrinho');
+                }}
                 className="w-full border-2 border-stone-300 text-stone-700 hover:bg-stone-50 rounded-xl py-3 font-semibold text-sm transition"
               >
                 Comprar agora →
