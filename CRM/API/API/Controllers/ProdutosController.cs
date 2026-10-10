@@ -284,8 +284,9 @@ public class ProdutosController : ControllerBase
             "image/webp"
         };
 
-        if (!tiposPermitidos.Contains(
-            arquivo.ContentType.ToLowerInvariant()))
+        var tipoConteudo = arquivo.ContentType.ToLowerInvariant();
+
+        if (!tiposPermitidos.Contains(tipoConteudo))
         {
             return BadRequest(new
             {
@@ -301,35 +302,36 @@ public class ProdutosController : ControllerBase
             return Forbid();
         }
 
-        var pastaUploads = Path.Combine(
-            Directory.GetCurrentDirectory(),
-            "wwwroot",
-            "uploads",
-            "produtos",
-            empresaId.ToString());
+        await using var memoria = new MemoryStream();
 
-        Directory.CreateDirectory(pastaUploads);
+        await arquivo.CopyToAsync(memoria);
 
-        var nomeArquivo = $"{Guid.NewGuid()}{extensao}";
-
-        var caminhoArquivo = Path.Combine(
-            pastaUploads,
-            nomeArquivo);
-
-        await using (var stream = new FileStream(
-            caminhoArquivo,
-            FileMode.Create))
-        {
-            await arquivo.CopyToAsync(stream);
-        }
+        var imagem = await _writeRepository.SalvarImagemAsync(
+            memoria.ToArray(),
+            tipoConteudo,
+            arquivo.FileName);
 
         var url =
-            $"{Request.Scheme}://{Request.Host}/uploads/produtos/{empresaId}/{nomeArquivo}";
+            $"{Request.Scheme}://{Request.Host}/api/produtos/imagem/{imagem.Id}";
 
         return Ok(new
         {
             imagemUrl = url
         });
     }
-}
 
+    [HttpGet("imagem/{id:guid}")]
+    [AllowAnonymous]
+    [ResponseCache(Duration = 86400, Location = ResponseCacheLocation.Any)]
+    public async Task<IActionResult> ObterImagem(Guid id)
+    {
+        var imagem = await _writeRepository.ObterImagemAsync(id);
+
+        if (imagem is null)
+        {
+            return NotFound();
+        }
+
+        return File(imagem.Conteudo, imagem.TipoConteudo);
+    }
+}

@@ -8,4 +8,6 @@ public interface IProdutoWriteRepository
     Task CadastrarProdutoAsync(Produto produto);
     Task<Produto?> ObterPorIdEEmpresaAsync(Guid id, Guid empresaId);
     Task AtualizarAsync(Produto produto);
+    Task<ArquivoImagemProduto> SalvarImagemAsync(byte[] conteudo,string tipoConteudo,string nomeArquivo);
+    Task<ArquivoImagemProduto?> ObterImagemAsync(Guid id);
 }
