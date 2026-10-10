@@ -1,3 +1,4 @@
+
 using Microsoft.EntityFrameworkCore;
 using OrbeB2B.Crm.Application.Repositories;
 using OrbeB2B.Crm.Domain.Entities;
@@ -13,10 +14,14 @@ public class ProdutoWriteRepository : IProdutoWriteRepository
         _context = context;
     }
 
-    public async Task<bool> CodigoComercialJaCadastradoAsync(Guid empresaId, string codigoComercial)
+    public async Task<bool> CodigoComercialJaCadastradoAsync(
+        Guid empresaId,
+        string codigoComercial)
     {
         return await _context.Produtos
-            .AnyAsync(p => p.EmpresaId == empresaId && p.CodigoComercial == codigoComercial);
+            .AnyAsync(p =>
+                p.EmpresaId == empresaId &&
+                p.CodigoComercial == codigoComercial);
     }
 
     public async Task CadastrarProdutoAsync(Produto produto)
@@ -25,31 +30,58 @@ public class ProdutoWriteRepository : IProdutoWriteRepository
         await _context.SaveChangesAsync();
     }
 
-    public async Task<Produto?> ObterPorIdEEmpresaAsync(Guid id, Guid empresaId)
+    public async Task<Produto?> ObterPorIdEEmpresaAsync(
+        Guid id,
+        Guid empresaId)
     {
         return await _context.Produtos
             .Include(p => p.Imagens)
-            .FirstOrDefaultAsync(p => p.Id == id && p.EmpresaId == empresaId);
+            .FirstOrDefaultAsync(p =>
+                p.Id == id &&
+                p.EmpresaId == empresaId);
     }
-   public async Task AtualizarAsync(Produto produto)
-{
-    var imagensNovas = produto.Imagens.ToList();
 
-    foreach (var entry in _context.ChangeTracker
-        .Entries<ProdutoImagem>()
-        .ToList())
+    public async Task AtualizarAsync(Produto produto)
     {
-        entry.State = EntityState.Detached;
+        var imagensNovas = produto.Imagens.ToList();
+
+        foreach (var entry in _context.ChangeTracker
+            .Entries<ProdutoImagem>()
+            .ToList())
+        {
+            entry.State = EntityState.Detached;
+        }
+
+        await _context.ProdutoImagens
+            .Where(i => i.ProdutoId == produto.Id)
+            .ExecuteDeleteAsync();
+
+        await _context.ProdutoImagens.AddRangeAsync(imagensNovas);
+
+        await _context.SaveChangesAsync();
     }
 
-    await _context.ProdutoImagens
-        .Where(i => i.ProdutoId == produto.Id)
-        .ExecuteDeleteAsync();
+    public async Task<ArquivoImagemProduto> SalvarImagemAsync(
+        byte[] conteudo,
+        string tipoConteudo,
+        string nomeArquivo)
+    {
+        var imagem = new ArquivoImagemProduto(
+            Guid.NewGuid(),
+            conteudo,
+            tipoConteudo,
+            nomeArquivo);
 
-    await _context.SaveChangesAsync();
+        await _context.ArquivosImagensProdutos.AddAsync(imagem);
+        await _context.SaveChangesAsync();
 
-    await _context.ProdutoImagens.AddRangeAsync(imagensNovas);
+        return imagem;
+    }
 
-    await _context.SaveChangesAsync();
-    } 
+    public async Task<ArquivoImagemProduto?> ObterImagemAsync(Guid id)
+    {
+        return await _context.ArquivosImagensProdutos
+            .AsNoTracking()
+            .FirstOrDefaultAsync(imagem => imagem.Id == id);
+    }
 }
