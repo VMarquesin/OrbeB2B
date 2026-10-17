@@ -1,4 +1,4 @@
-# 🏛️ Documentação de Arquitetura e Rotas - OrbeB2B CRM 
+# Documentação de Arquitetura e Rotas - OrbeB2B CRM 
 
 Este documento descreve a arquitetura, as decisões de design (ADR) e o catálogo de rotas da API do CRM B2B. Ele serve como base de conhecimento técnico obrigatória para manutenção e evolução do sistema.
 
@@ -34,7 +34,7 @@ O sistema utiliza **Clean Architecture** dividida em: `Domain`, `Application`, `
 
 ## 3. Catálogo de Rotas e Módulos Implementados
 
-### 🏢 Módulo 1: Onboarding e Tenant (Empresa)
+### Módulo 1: Onboarding e Tenant (Empresa)
 Responsável pelo nascimento do ecossistema SaaS.
 *   `POST /api/empresas` **(Sem Token / AllowAnonymous)**
     *   **Funcionalidade:** Cria a matriz SaaS.
@@ -42,7 +42,7 @@ Responsável pelo nascimento do ecossistema SaaS.
 *   `GET /api/empresas` **(Exige Token)**
     *   **Funcionalidade:** Lista as empresas (visão administrativa). Faz JOIN com cidades e estados via Dapper.
 
-### 👥 Módulo 2: Acessos e Equipe (Usuários e EmpresaFuncionario)
+### Módulo 2: Acessos e Equipe (Usuários e EmpresaFuncionario)
 Gestão de quem acessa o sistema e qual o seu papel no Tenant.
 *   `POST /api/usuarios`
     *   **Funcionalidade:** Cria um usuário (credenciais) e automaticamente cria o vínculo na tabela `empresa_funcionarios` (cargo/departamento) atrelando ao Tenant.
@@ -51,7 +51,7 @@ Gestão de quem acessa o sistema e qual o seu papel no Tenant.
     *   **Funcionalidade:** Lista os funcionários da empresa logada.
     *   **Regra:** JOIN entre `empresa_funcionarios` e `usuarios`, filtrando pelo Tenant do JWT.
 
-### 🤝 Módulo 3: Clientes B2B
+### Módulo 3: Clientes B2B
 A carteira de clientes que a indústria atende.
 *   `POST /api/clientes`
     *   **Funcionalidade:** Cadastra um novo cliente amarrado à empresa do usuário logado.
@@ -59,7 +59,7 @@ A carteira de clientes que a indústria atende.
 *   `GET /api/clientes`
     *   **Funcionalidade:** Listagem rápida de clientes, formatando o Endereço (JOIN com tabelas `cidade` e `estado`).
 
-### 📦 Módulo 4: Catálogo (Fornecedores, Categorias e Produtos)
+### Módulo 4: Catálogo (Fornecedores, Categorias e Produtos)
 A base para a geração de vendas.
 *   `POST / GET /api/categorias`: Gestão de categorias do catálogo (valida nome duplicado no Tenant).
 *   `POST / GET /api/fornecedores`: Gestão de fornecedores (usando CNPJ).
@@ -69,7 +69,7 @@ A base para a geração de vendas.
 *   `GET /api/produtos`
     *   **Funcionalidade:** Lista o catálogo. JOIN com `categorias` e `fornecedores` para trazer os nomes em vez de IDs.
 
-### 🛒 Módulo 5: Motor de Vendas (Pedidos)
+### Módulo 5: Motor de Vendas (Pedidos)
 O coração transacional (Agregado Master-Detail do DDD).
 *   `POST /api/pedidos`
     *   **Funcionalidade:** Cria a "Capa" do pedido e adiciona múltiplos "Itens" (`PedidoItem`) numa tacada só.
@@ -79,7 +79,7 @@ O coração transacional (Agregado Master-Detail do DDD).
 *   `GET /api/pedidos`
     *   **Funcionalidade:** Traz o resumo dos pedidos de vendas (ID formatado, Nome do Cliente, Valor Total e Status) ordenado do mais recente para o mais antigo.
 
-### 🔒 Módulo 6: Autenticação & Segurança (JWT)
+### Módulo 6: Autenticação & Segurança (JWT)
 *   `POST /api/auth/login` (AllowAnonymous)
     *   **Funcionalidade:** Autentica credenciais e emite o Token JWT com os dados da sessão.
     *   **Fluxo:** Dapper busca UsuarioAuthModel -> BCrypt.Verify -> Valida EstaAtivo -> Emite JWT com as claims:
@@ -90,7 +90,7 @@ O coração transacional (Agregado Master-Detail do DDD).
 
 *************************************
 
-# 🏛️ Documentação de Arquitetura e Rotas - OrbeB2B CRM 
+# Documentação de Arquitetura e Rotas - OrbeB2B CRM 
 
 Este documento descreve a arquitetura, as decisões de design (ADR) e o catálogo de rotas da API do CRM B2B. Ele serve como base de conhecimento técnica obrigatória para o Front-end e novos desenvolvedores.
 
@@ -115,38 +115,38 @@ Este documento descreve a arquitetura, as decisões de design (ADR) e o catálog
 
 ## 3. Catálogo de Rotas (Módulos)
 
-### 🏢 Módulo 1: Onboarding (Empresa)
+### Módulo 1: Onboarding (Empresa)
 *   `POST /api/empresas` **[AllowAnonymous]** - Cria um novo Tenant (Matriz).
 *   `GET /api/empresas` **[Authorize]** - Lista os Tenants.
 
-### 🔑 Módulo 2: Autenticação (Login)
+### Módulo 2: Autenticação (Login)
 *   `POST /api/auth/login` **[AllowAnonymous]**
     *   **Ação:** Valida E-mail e Senha (BCrypt). Se inativo, retorna `403`.
     *   **Retorno:** JWT contendo `UsuarioId`, `Email`, `NomePerfil` e `TenantId`.
 
-### 👥 Módulo 3: Equipe (Usuários)
+### Módulo 3: Equipe (Usuários)
 *   `POST /api/usuarios` - Cria acesso interno e vincula ao Tenant.
 *   `GET /api/equipe` - Lista os funcionários do Tenant logado.
 
-### 🤝 Módulo 4: Clientes B2B
+### Módulo 4: Clientes B2B
 *   `POST /api/clientes` - Cadastra um cliente.
 *   `GET /api/clientes` - Lista os clientes (com formatação de Endereço via JOIN).
 
-### 📦 Módulo 5: Catálogo Base
+### Módulo 5: Catálogo Base
 *   `GET | POST /api/categorias` - Gestão de agrupadores.
 *   `GET | POST /api/fornecedores` - Gestão de origens.
 *   `GET | POST /api/produtos` - Cadastro de SKUs exigindo Categorias e Fornecedores.
 
-### 🛒 Módulo 6: Motor de Vendas (Pedidos)
+### Módulo 6: Motor de Vendas (Pedidos)
 *   `POST /api/pedidos` - Grava "Capa" e "Itens" em transação única (`BeginTransactionAsync`). Valor calculado no back-end.
 *   `GET /api/pedidos` - Lista histórico resumido de vendas.
 
-### ⚙️ Módulo 7: Workflow (Avanço de Status / Máquina de Estados)
+### Módulo 7: Workflow (Avanço de Status / Máquina de Estados)
 *   `PATCH /api/clientes/{id}/status` - Aprova/Rejeita cadastro.
 *   `PATCH /api/pedidos/{id}/status-logistica` - Avança status físico (Aguardando -> Separacao -> Enviado).
 *   `PATCH /api/pedidos/{id}/status-erp` - Avança integração sistêmica.
 
-### 🗂️ Módulo 8: Rotas de Apoio (Lookups)
+### Módulo 8: Rotas de Apoio (Lookups)
 Usadas pelo Front-end para popular selects e comboboxes:
 *   `GET /api/lookups/perfis` - Lista os papéis de acesso do sistema.
 *   `GET /api/lookups/estados` - Lista as UFs.
